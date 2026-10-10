@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { exampleStandard, exampleTemplate, seedDataStandard, seedDataTemplate } from './defaults';
+import { exampleStandard, exampleTemplate } from '../test/fixtures';
+import { seedDataStandard, seedDataTemplate } from './defaults';
 import { blankColumn, tableFromRows } from './model';
 import type { Template } from './types';
 import { validateTable } from './validate';
@@ -34,14 +35,14 @@ describe('validateTable', () => {
     ];
     const r = validateTable(tableFromRows(tpl.columns, rows, 'ai'), tpl, exampleStandard);
     const msgs = r.errors.map((e) => e.message);
-    expect(msgs).toContain('Row 1: required "Given" is empty.');
-    expect(msgs).toContain('Row 3: "Priority" must be one of High, Medium, Low (found "Urgent").');
-    expect(msgs).toContain('Row 4: "ID" does not match the pattern ^AC-\\d+$ (expected: AC-1, AC-2, … in order).');
-    expect(msgs).toContain('Row 5: "Scenario" is 81 characters (max 80).');
-    expect(msgs).toContain('Row 2: "ID" value "AC-1" is already used in row 1.');
-    expect(r.warnings.map((w) => w.message)).toContain('Row 2: "When" is marked Not specified — needs review.');
+    expect(msgs).toContain('ردیف 1: «Given» اجباری است و خالی مانده است.');
+    expect(msgs).toContain('ردیف 3: «Priority» باید یکی از این مقدارها باشد: High، Medium، Low (مقدار فعلی: «Urgent»).');
+    expect(msgs).toContain('ردیف 4: «ID» با قالب موردانتظار مطابقت ندارد: AC-1, AC-2, … in order');
+    expect(msgs).toContain('ردیف 5: «Scenario» 81 کاراکتر است (حداکثر 80).');
+    expect(msgs).toContain('ردیف 2: مقدار «AC-1» در «ID» تکراری است (ردیف 1).');
+    expect(r.warnings.map((w) => w.message)).toContain('ردیف 2: «When» مقدار Not specified دارد و باید بررسی شود.');
     // Cell-level issues point at the right cell.
-    expect(r.errors.find((e) => e.message.startsWith('Row 1: required'))).toMatchObject({ row: 0, columnId: GIVEN });
+    expect(r.errors.find((e) => e.message.startsWith('ردیف 1: «Given» اجباری'))).toMatchObject({ row: 0, columnId: GIVEN });
   });
 
   it('detects missing, unexpected and reordered columns', () => {
@@ -49,25 +50,25 @@ describe('validateTable', () => {
     table.columns = [table.columns[1], table.columns[0], ...table.columns.slice(2, 5), { ...blankColumn('Owner'), id: 'own' }];
     const r = validateTable(table, tpl, exampleStandard);
     const msgs = r.errors.map((e) => e.message);
-    expect(msgs.some((m) => m.startsWith('Column order differs from the template'))).toBe(true);
-    expect(msgs).toContain('Unexpected column "Owner" is not part of the template "Acceptance criteria table".');
-    expect(r.warnings.map((w) => w.message)).toContain('Optional column "Priority" is missing.');
+    expect(msgs.some((m) => m.startsWith('ترتیب ستون‌ها با ساختار جدول یکی نیست'))).toBe(true);
+    expect(msgs).toContain('ستون «Owner» جزو ساختار «Acceptance criteria table» نیست.');
+    expect(r.warnings.map((w) => w.message)).toContain('ستون اختیاری «Priority» در جدول نیست.');
 
     const noRequired = tableFromRows(tpl.columns.slice(1), [good(1)], 'ai');
-    expect(validateTable(noRequired, tpl, exampleStandard).errors.map((e) => e.message)).toContain('Required column "ID" is missing.');
+    expect(validateTable(noRequired, tpl, exampleStandard).errors.map((e) => e.message)).toContain('ستون اجباری «ID» در جدول نیست.');
   });
 
   it('detects duplicate rows, empty rows, inconsistent rows and an empty table', () => {
     const table = tableFromRows(tpl.columns, [good(1), good(1), {}], 'ai');
     delete table.rows[0].cells[THEN];
     const r = validateTable(table, tpl, exampleStandard);
-    expect(r.warnings.map((w) => w.message)).toEqual(expect.arrayContaining(['Row 3 is empty.']));
-    expect(r.errors.map((e) => e.message)).toContain('Row 1 is missing cells for: Then.');
+    expect(r.warnings.map((w) => w.message)).toEqual(expect.arrayContaining(['ردیف 3 خالی است.']));
+    expect(r.errors.map((e) => e.message)).toContain('ردیف 1: این سلول‌ها وجود ندارند: Then.');
 
     const dup = validateTable(tableFromRows(tpl.columns, [good(1, 'High'), good(1, 'high')], 'ai'), tpl, exampleStandard);
-    expect(dup.warnings.map((w) => w.message)).toContain('Row 2 duplicates row 1.');
+    expect(dup.warnings.map((w) => w.message)).toContain('ردیف 2 با ردیف 1 یکسان است.');
 
-    expect(validateTable(tableFromRows(tpl.columns, [], 'ai'), tpl, exampleStandard).warnings.map((w) => w.message)).toContain('The table has no rows.');
+    expect(validateTable(tableFromRows(tpl.columns, [], 'ai'), tpl, exampleStandard).warnings.map((w) => w.message)).toContain('جدول هیچ ردیفی ندارد.');
   });
 
   it('works for any user-defined template and reports invalid regex patterns', () => {
@@ -81,8 +82,8 @@ describe('validateTable', () => {
       ],
     };
     const r = validateTable(tableFromRows(custom.columns, [{ m: 'PUT', p: '/x' }], 'manual'), custom, exampleStandard);
-    expect(r.errors.map((e) => e.message)).toEqual(['Row 1: "Method" must be one of GET, POST (found "PUT").']);
-    expect(r.warnings.map((w) => w.message)).toContain('The pattern for "Path" is not a valid regular expression, so it was not checked.');
+    expect(r.errors.map((e) => e.message)).toEqual(['ردیف 1: «Method» باید یکی از این مقدارها باشد: GET، POST (مقدار فعلی: «PUT»).']);
+    expect(r.warnings.map((w) => w.message)).toContain('الگوی ستون «Path» یک Regex معتبر نیست و بررسی نشد.');
   });
 });
 
@@ -115,10 +116,10 @@ describe('QA Seed Data template', () => {
       row({ [byName('Name')]: 'Same ID as row 2' }),
     ];
     const msgs = validateTable(tableFromRows(sd.columns, rows, 'ai'), sd, seedDataStandard).errors.map((e) => e.message);
-    expect(msgs).toContain('Row 1: "Seed Data ID" does not match the pattern ^SD-[A-Z0-9]+(-[A-Z0-9]+)*-\\d{3}$ (expected: SD-[ENTITY]-[DESCRIPTION]-[NUMBER], e.g. SD-ORDER-PENDING-001).');
-    expect(msgs).toContain('Row 2: "Environment" must be one of stage, UAT, production (found "dev").');
-    expect(msgs.some((m) => m.startsWith('Row 3: "Data" does not match the pattern'))).toBe(true);
-    expect(msgs).toContain('Row 4: "How to Create" must not contain password.');
-    expect(msgs).toContain('Row 5: "Seed Data ID" value "SD-ORDER-PENDING-001" is already used in row 2.');
+    expect(msgs).toContain('ردیف 1: «Seed Data ID» با قالب موردانتظار مطابقت ندارد: SD-[ENTITY]-[DESCRIPTION]-[NUMBER], e.g. SD-ORDER-PENDING-001');
+    expect(msgs).toContain('ردیف 2: «Environment» باید یکی از این مقدارها باشد: stage، UAT، production (مقدار فعلی: «dev»).');
+    expect(msgs.some((m) => m.startsWith('ردیف 3: «Data» با قالب موردانتظار مطابقت ندارد'))).toBe(true);
+    expect(msgs).toContain('ردیف 4: «How to Create» نباید اطلاعات حساس داشته باشد (password).');
+    expect(msgs).toContain('ردیف 5: مقدار «SD-ORDER-PENDING-001» در «Seed Data ID» تکراری است (ردیف 2).');
   });
 });

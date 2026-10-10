@@ -1,6 +1,6 @@
-# Local Table Generator
+# QA Seed Data Generator
 
-Turn notes, requirements or user stories into a table that follows your own standard and column structure, then copy it into Confluence.
+Turn requirements and notes into Seed Data that follows the team's QA Seed Data Guide, then copy it into Confluence and reference it from Zephyr. The UI is Persian and right-to-left.
 
 - [English](#run)
 - [راهنمای فارسی اجرا روی لوکال](#راهنمای-اجرا-روی-لوکال)
@@ -19,12 +19,11 @@ Open http://localhost:5173. Your work is saved in this browser's local storage (
 
 ## Workflow
 
-1. **Standard** – name, rules, required content, validation criteria, examples. Save / Rename / Duplicate / Delete.
-2. **Table structure** – columns in order, each with description, required flag, expected content and optional checked rules (allowed values, regex pattern, max length, unique).
-3. **Input** – paste the source text.
-4. **Generate table** – fills the exact columns. Missing information becomes `Not specified` and is flagged.
-5. **Review and edit** – edit cells, add/delete/move rows and columns, Validate, Save table. Edits never change the saved template unless you click *Update template from table*.
-6. **Copy or export** – Copy for Confluence (rich HTML + plain-text fallback), Copy as HTML, Copy as Confluence wiki markup, Copy as Markdown, Download CSV (UTF-8), Download HTML.
+- **Guide panel** – summary of the QA Seed Data Guide: when to create Seed Data, Zephyr vs Confluence, naming convention, rules.
+1. **Requirements and notes** – paste what the tests need, then click **ساخت Seed Data**. Missing information becomes `Not specified` and is flagged; nothing is invented.
+2. **Review and edit** – one row per Seed Data; edit cells, add/delete/move rows and columns, save and reopen. **بررسی با Checklist** scores the guide's checklist (ID set, naming convention, unique, Name, Purpose, Environment, Data, Status, Preconditions, How to Create, no sensitive data, Used For) and lists the rows to fix.
+3. **Confluence and Zephyr** – copy one Confluence section per Seed Data in the guide's structure (Data as a Field/Value table, Preconditions and Used For as lists, How to Create as numbered steps) or everything as one table; copy the Zephyr reference (`Test Data: SD-…`). More formats: HTML, wiki markup, Markdown, CSV, HTML file.
+- **Advanced settings** – the standard and the table structure (columns and their checked rules) for when the guide changes. Table edits never change them unless you click *update structure from the current table*.
 
 ## QA Seed Data guide
 
@@ -61,7 +60,15 @@ The same guide is a Claude Code skill in `.claude/skills/qa-seed-data/SKILL.md`,
 
 ### راهنمای Seed Data تیم QA
 
-راهنمای Seed Data تیم به صورت پیش‌فرض در برنامه وجود دارد: استاندارد **QA Seed Data (Confluence)** و قالب جدول **QA Seed Data table**. جدول تولیدشده ساختار، Naming Convention (`SD-[ENTITY]-[DESCRIPTION]-[NUMBER]`) و قوانین راهنما را رعایت می‌کند و دکمهٔ **Validate** موارد زیر را خودکار بررسی می‌کند: قالب و یکتا بودن ID، مقدار Environment، وجود Status در Data و ثبت نشدن اطلاعات حساس. اگر از قبل با برنامه کار کرده‌اید، این استاندارد و قالب را از فهرست‌های بالای بخش ۱ و ۲ انتخاب کنید.
+برنامه کاملاً بر اساس راهنمای Seed Data تیم QA است و سه مرحله دارد:
+
+۱. **نیازمندی‌ها و یادداشت‌ها:** داده‌هایی را که تست‌ها لازم دارند وارد کنید و «ساخت Seed Data» را بزنید. اطلاعاتی که در ورودی نیست ساخته نمی‌شود و با `Not specified` مشخص می‌شود.
+
+۲. **بررسی و ویرایش:** هر ردیف یک Seed Data است. دکمهٔ «بررسی با Checklist» موارد Checklist راهنما را خودکار بررسی می‌کند (Seed Data ID و Naming Convention، تکراری نبودن، Name، Purpose، Environment، Data و Status، Preconditions، How to Create، نبودن اطلاعات حساس و Used For) و ردیف‌های مشکل‌دار را نشان می‌دهد.
+
+۳. **انتقال به Confluence و Zephyr:** هر Seed Data با ساختار راهنما برای Confluence کپی می‌شود و متن Reference برای فیلد Test Data در Zephyr آماده است.
+
+استاندارد و ساختار جدول در «تنظیمات پیشرفته» پایین صفحه قرار دارند و فقط وقتی راهنمای تیم تغییر کرد لازم است آن‌ها را عوض کنید. اگر از قبل با برنامه کار کرده‌اید، **QA Seed Data** را از فهرست‌های همان بخش انتخاب کنید.
 
 همین راهنما به صورت اسکیل Claude Code در مسیر `.claude/skills/qa-seed-data/SKILL.md` هم قرار دارد.
 

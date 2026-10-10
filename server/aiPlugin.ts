@@ -29,7 +29,7 @@ export function aiPlugin(options: Options = {}): Plugin {
   const middleware: Connect.NextHandleFunction = (req, res, next) => {
     const url = req.url?.split('?')[0];
     if (!url?.startsWith('/api/ai/')) return next();
-    if (!isSameOrigin(req)) return send(res, 403, { error: 'Cross-origin requests are not allowed.' });
+    if (!isSameOrigin(req)) return send(res, 403, { error: 'درخواست از سایت‌های دیگر مجاز نیست.' });
     if (url === '/api/ai/status' && req.method === 'GET') return void handleStatus(req, res, options);
     if (url === '/api/ai/generate' && req.method === 'POST') return void handleGenerate(req, res, options);
     send(res, 404, { error: 'Not found' });
@@ -73,13 +73,13 @@ async function handleGenerate(req: IncomingMessage, res: ServerResponse, options
   try {
     body = JSON.parse(await readBody(req)) as GenerateBody;
   } catch (err) {
-    return send(res, 400, { error: err instanceof Error ? err.message : 'Invalid request body.' });
+    return send(res, 400, { error: err instanceof Error ? err.message : 'بدنهٔ درخواست نامعتبر است.' });
   }
   const { provider, model, baseUrl, system, user, schema } = body;
   if (typeof system !== 'string' || typeof user !== 'string' || typeof model !== 'string' || (provider !== 'claude-code' && !model.trim())) {
-    return send(res, 400, { error: 'Missing model or prompt.' });
+    return send(res, 400, { error: 'مدل یا متن درخواست ارسال نشده است.' });
   }
-  if (!schema || typeof schema !== 'object') return send(res, 400, { error: 'Missing output schema.' });
+  if (!schema || typeof schema !== 'object') return send(res, 400, { error: 'ساختار خروجی (schema) ارسال نشده است.' });
   const timeoutMs = typeof body.timeoutMs === 'number' && body.timeoutMs > 0 ? Math.min(body.timeoutMs, 600_000) : 120_000;
 
   // Stop the upstream call if the browser cancels or goes away.
@@ -94,14 +94,14 @@ async function handleGenerate(req: IncomingMessage, res: ServerResponse, options
     if (provider === 'claude-code') text = await generateWithClaudeCode(request);
     else if (provider === 'anthropic') text = await generateWithAnthropic(request, options.anthropicApiKey);
     else if (provider === 'ollama') {
-      if (typeof baseUrl !== 'string') return send(res, 400, { error: 'Missing Ollama URL.' });
+      if (typeof baseUrl !== 'string') return send(res, 400, { error: 'آدرس Ollama ارسال نشده است.' });
       text = await generateWithOllama({ ...request, baseUrl: checkHttpUrl(baseUrl) });
-    } else return send(res, 400, { error: 'Unknown provider.' });
+    } else return send(res, 400, { error: 'روش تولید ناشناخته است.' });
     send(res, 200, { text });
   } catch (err) {
     if (controller.signal.aborted) return;
     const status = err instanceof ProviderError ? err.status : 502;
-    send(res, status, { error: err instanceof Error ? err.message : 'The AI provider failed.' });
+    send(res, status, { error: err instanceof Error ? err.message : 'سرویس AI با خطا مواجه شد.' });
   }
 }
 
@@ -120,7 +120,7 @@ function isSameOrigin(req: IncomingMessage): boolean {
 
 function checkHttpUrl(value: string): string {
   const url = new URL(value);
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new ProviderError(400, 'The Ollama URL must start with http:// or https://');
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new ProviderError(400, 'آدرس Ollama باید با http:// یا https:// شروع شود.');
   return url.toString();
 }
 
@@ -131,7 +131,7 @@ function readBody(req: IncomingMessage): Promise<string> {
     req.on('data', (chunk: Buffer) => {
       size += chunk.length;
       if (size > MAX_BODY_BYTES) {
-        reject(new Error('The request is too large (limit 2 MB).'));
+        reject(new Error('درخواست خیلی بزرگ است (حداکثر ۲ مگابایت).'));
         req.destroy();
       } else chunks.push(chunk);
     });

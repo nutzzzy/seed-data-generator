@@ -12,7 +12,7 @@ Follow the standard and the column definitions you are given.
 Use only information that is present in the source input. Do not invent facts, names, numbers or priorities.
 When a value for a column is not in the source, write exactly "${NOT_SPECIFIED}" and add an entry to "issues" explaining what is missing.
 Also add an entry to "issues" when something in the source is ambiguous or contradictory.
-Use the column names exactly as given, in the given order. Answer with JSON only.`;
+Use the column names exactly as given, in the given order. Write the "issues" messages in Persian (Farsi), keeping column names, IDs and technical terms in English. Answer with JSON only.`;
 
 function columnSpec(c: ColumnDef) {
   const spec: Record<string, unknown> = { name: c.name.trim(), required: c.required };

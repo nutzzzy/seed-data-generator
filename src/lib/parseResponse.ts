@@ -34,7 +34,7 @@ export function extractJson(text: string): unknown {
       /* try the next candidate */
     }
   }
-  throw new InvalidResponseError('The AI response was not valid JSON.');
+  throw new InvalidResponseError('پاسخ AI یک JSON معتبر نبود.');
 }
 
 function toCell(value: unknown): string | undefined {
@@ -52,8 +52,8 @@ function toCell(value: unknown): string | undefined {
 export function normalizeResponse(text: string, columns: ColumnDef[]): ParsedRows {
   const data = extractJson(text);
   const rawRows: unknown = Array.isArray(data) ? data : (data as { rows?: unknown })?.rows;
-  if (!Array.isArray(rawRows)) throw new InvalidResponseError('The AI response did not contain a "rows" list.');
-  if (rawRows.length === 0) throw new InvalidResponseError('The AI returned no rows. Check that the input contains content for the table.');
+  if (!Array.isArray(rawRows)) throw new InvalidResponseError('پاسخ AI فهرست «rows» نداشت.');
+  if (rawRows.length === 0) throw new InvalidResponseError('AI هیچ ردیفی برنگرداند. بررسی کنید ورودی، داده‌های موردنیاز تست را توضیح دهد.');
 
   const notes: Issue[] = [];
   const byName = new Map(columns.map((c) => [norm(c.name), c]));
@@ -64,7 +64,7 @@ export function normalizeResponse(text: string, columns: ColumnDef[]): ParsedRow
     if (Array.isArray(raw)) {
       columns.forEach((c, i) => (row[c.id] = toCell(raw[i]) ?? ''));
       if (raw.length !== columns.length) {
-        notes.push({ level: 'warning', message: `Row ${r + 1} had ${raw.length} values for ${columns.length} columns.`, row: r });
+        notes.push({ level: 'warning', rule: 'generation', message: `ردیف ${r + 1} به جای ${columns.length} مقدار، ${raw.length} مقدار داشت.`, row: r });
       }
     } else if (raw && typeof raw === 'object') {
       for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
@@ -73,7 +73,7 @@ export function normalizeResponse(text: string, columns: ColumnDef[]): ParsedRow
         else ignored.add(key);
       }
     } else {
-      throw new InvalidResponseError(`Row ${r + 1} in the AI response is not an object.`);
+      throw new InvalidResponseError(`ردیف ${r + 1} در پاسخ AI یک شیء نیست.`);
     }
     for (const col of columns) {
       if (row[col.id] === undefined || (col.required && row[col.id] === '')) row[col.id] = NOT_SPECIFIED;
@@ -82,7 +82,7 @@ export function normalizeResponse(text: string, columns: ColumnDef[]): ParsedRow
   });
 
   if (ignored.size) {
-    notes.push({ level: 'warning', message: `Ignored fields that are not table columns: ${[...ignored].join(', ')}.` });
+    notes.push({ level: 'warning', rule: 'generation', message: `فیلدهایی که جزو ستون‌ها نبودند نادیده گرفته شدند: ${[...ignored].join('، ')}.` });
   }
 
   const rawIssues = (data as { issues?: unknown })?.issues;
@@ -95,7 +95,8 @@ export function normalizeResponse(text: string, columns: ColumnDef[]): ParsedRow
       const col = typeof column === 'string' ? byName.get(norm(column)) : undefined;
       notes.push({
         level: 'warning',
-        message: `${rowIndex !== undefined ? `Row ${rowIndex + 1}: ` : ''}${col ? `"${col.name}": ` : ''}${message.trim()}`,
+        rule: 'generation',
+        message: `${rowIndex !== undefined ? `ردیف ${rowIndex + 1}: ` : ''}${col ? `«${col.name}»: ` : ''}${message.trim()}`,
         row: rowIndex,
         columnId: col?.id,
       });

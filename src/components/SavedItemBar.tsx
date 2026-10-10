@@ -4,7 +4,7 @@ interface Item {
 }
 
 interface Props {
-  /** Singular noun shown in labels, e.g. "standard". */
+  /** Noun shown in labels, e.g. "استاندارد". */
   noun: string;
   items: Item[];
   activeId: string;
@@ -23,9 +23,9 @@ export function SavedItemBar({ noun, items, activeId, dirty, onSelect, onNew, on
   return (
     <div className="saved-bar">
       <label className="saved-select">
-        <span className="sr-only">Saved {noun}</span>
-        <select value={isSaved ? activeId : ''} onChange={(e) => e.target.value && onSelect(e.target.value)} aria-label={`Saved ${noun}s`}>
-          {!isSaved && <option value="">New {noun} (not saved yet)</option>}
+        <span className="sr-only">{noun}های ذخیره‌شده</span>
+        <select value={isSaved ? activeId : ''} onChange={(e) => e.target.value && onSelect(e.target.value)} aria-label={`${noun}های ذخیره‌شده`}>
+          {!isSaved && <option value="">{noun} جدید (هنوز ذخیره نشده)</option>}
           {items.map((i) => (
             <option key={i.id} value={i.id}>
               {i.name}
@@ -35,22 +35,22 @@ export function SavedItemBar({ noun, items, activeId, dirty, onSelect, onNew, on
       </label>
       <div className="saved-actions">
         <button type="button" className={`btn btn-sm ${dirty ? 'btn-primary' : ''}`} onClick={onSave} disabled={!dirty}>
-          {dirty ? 'Save' : 'Saved'}
+          {dirty ? 'ذخیره' : 'ذخیره شده'}
         </button>
         <button type="button" className="btn btn-sm" onClick={onNew}>
-          New
+          جدید
         </button>
         <button type="button" className="btn btn-sm" onClick={onRename}>
-          Rename
+          تغییر نام
         </button>
         <button type="button" className="btn btn-sm" onClick={onDuplicate}>
-          Duplicate
+          کپی
         </button>
         <button type="button" className="btn btn-sm btn-ghost-danger" onClick={onDelete} disabled={!isSaved}>
-          Delete
+          حذف
         </button>
       </div>
-      {dirty && <p className="hint unsaved">Unsaved changes — they are kept in this browser, but not in the saved {noun} until you click Save.</p>}
+      {dirty && <p className="hint unsaved">تغییرات ذخیره نشده‌اند. در همین مرورگر نگه داشته می‌شوند، اما تا روی «ذخیره» کلیک نکنید در {noun} ذخیره‌شده اعمال نمی‌شوند.</p>}
     </div>
   );
 }

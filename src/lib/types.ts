@@ -44,9 +44,24 @@ export interface TableRow {
 
 export type IssueLevel = 'error' | 'warning' | 'info';
 
+/** Which check produced an issue; used to build the Seed Data checklist. */
+export type IssueRule =
+  | 'structure'
+  | 'empty-row'
+  | 'duplicate-row'
+  | 'required'
+  | 'not-specified'
+  | 'allowed'
+  | 'pattern'
+  | 'max-length'
+  | 'forbidden'
+  | 'unique'
+  | 'generation';
+
 export interface Issue {
   level: IssueLevel;
   message: string;
+  rule?: IssueRule;
   /** Zero-based row index, when the issue belongs to one row. */
   row?: number;
   /** Column id, when the issue belongs to one column. */

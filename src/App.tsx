@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDialogs } from './components/Dialogs';
 import { ExportPanel } from './components/ExportPanel';
+import { GuidePanel } from './components/GuidePanel';
 import { SavedItemBar } from './components/SavedItemBar';
 import { SettingsDialog } from './components/SettingsDialog';
 import { StandardEditor } from './components/StandardEditor';
@@ -8,7 +9,7 @@ import { TableEditor } from './components/TableEditor';
 import { TemplateEditor } from './components/TemplateEditor';
 import { useToast } from './components/Toasts';
 import { ValidationPanel } from './components/ValidationPanel';
-import { exampleInputFor } from './lib/defaults';
+import { seedDataInput } from './lib/defaults';
 import { generateTable, GenerationError, type AiTransport } from './lib/generate';
 import { newId, nowIso } from './lib/ids';
 import { blankStandard, blankTemplate, sameContent, templateProblems } from './lib/model';
@@ -27,8 +28,10 @@ export function providerLabel(s: Settings): string {
   if (s.provider === 'claude-code') return `Claude Code${s.claudeCodeModel ? ` · ${s.claudeCodeModel}` : ''}`;
   if (s.provider === 'anthropic') return `Claude · ${s.anthropicModel}`;
   if (s.provider === 'ollama') return `Ollama · ${s.ollamaModel}`;
-  return 'Basic (offline, no AI)';
+  return 'ساده (آفلاین)';
 }
+
+const count = (n: number, noun: string) => `${n} ${noun}`;
 
 export default function App({ transport }: Props) {
   const [loaded] = useState(() => loadWorkspace());
@@ -70,9 +73,9 @@ export default function App({ transport }: Props) {
     const okToLeave = async () =>
       !dirty ||
       confirm({
-        title: 'Discard unsaved changes?',
-        message: `“${draft.name || `Untitled ${noun}`}” has changes that are not saved.`,
-        confirmLabel: 'Discard changes',
+        title: 'تغییرات ذخیره‌نشده حذف شوند؟',
+        message: `«${draft.name || noun}» تغییراتی دارد که ذخیره نشده‌اند.`,
+        confirmLabel: 'حذف تغییرات',
         danger: true,
       });
 
@@ -89,43 +92,43 @@ export default function App({ transport }: Props) {
         if (await okToLeave()) update({ [draftKey]: blank() } as Partial<Workspace>);
       },
       save: () => {
-        if (!draft.name.trim()) return notify('error', `Give the ${noun} a name before saving.`);
+        if (!draft.name.trim()) return notify('error', `قبل از ذخیره، برای ${noun} نام انتخاب کنید.`);
         const item = { ...draft, name: draft.name.trim(), updatedAt: nowIso() };
         set(saved ? list.map((i) => (i.id === item.id ? item : i)) : [...list, item], item);
-        notify('success', `Saved ${noun} “${item.name}”.`);
+        notify('success', `${noun} «${item.name}» ذخیره شد.`);
       },
       rename: async () => {
-        const name = await prompt({ title: `Rename ${noun}`, label: 'New name', initialValue: draft.name, confirmLabel: 'Rename' });
+        const name = await prompt({ title: `تغییر نام ${noun}`, label: 'نام جدید', initialValue: draft.name, confirmLabel: 'تغییر نام' });
         if (!name) return;
         set(
           list.map((i) => (i.id === draft.id ? { ...i, name, updatedAt: nowIso() } : i)),
           { ...draft, name },
         );
-        notify('success', `Renamed to “${name}”.`);
+        notify('success', `نام به «${name}» تغییر کرد.`);
       },
       duplicate: () => {
-        const copy = { ...structuredClone(draft), id: newId(listKey === 'standards' ? 'std' : 'tpl'), name: `${draft.name || noun} (copy)`, updatedAt: nowIso() };
+        const copy = { ...structuredClone(draft), id: newId(listKey === 'standards' ? 'std' : 'tpl'), name: `${draft.name || noun} (کپی)`, updatedAt: nowIso() };
         set([...list, copy], copy);
-        notify('success', `Created “${copy.name}”.`);
+        notify('success', `«${copy.name}» ساخته شد.`);
       },
       remove: async () => {
         if (!saved) return;
         const ok = await confirm({
-          title: `Delete ${noun}?`,
-          message: `“${saved.name}” will be permanently deleted. Tables you already generated are not affected.`,
-          confirmLabel: 'Delete',
+          title: `${noun} حذف شود؟`,
+          message: `«${saved.name}» برای همیشه حذف می‌شود. جدول‌هایی که قبلاً ساخته‌اید تغییری نمی‌کنند.`,
+          confirmLabel: 'حذف',
           danger: true,
         });
         if (!ok) return;
         const rest = list.filter((i) => i.id !== saved.id);
         set(rest, rest[0] ? structuredClone(rest[0]) : blank());
-        notify('success', `Deleted “${saved.name}”.`);
+        notify('success', `«${saved.name}» حذف شد.`);
       },
     };
   }
 
-  const std = collectionActions<Standard>('standards', 'standardDraft', blankStandard, 'standard');
-  const tpl = collectionActions<Template>('templates', 'templateDraft', blankTemplate, 'template');
+  const std = collectionActions<Standard>('standards', 'standardDraft', () => blankStandard('استاندارد جدید'), 'استاندارد');
+  const tpl = collectionActions<Template>('templates', 'templateDraft', () => blankTemplate('ساختار جدید'), 'ساختار جدول');
 
   // ---- Generation --------------------------------------------------------------------------
   const problems = templateProblems(ws.templateDraft);
@@ -133,7 +136,7 @@ export default function App({ transport }: Props) {
   const generate = async () => {
     setGenError(null);
     if (!ws.input.trim()) {
-      setGenError('Add some input text first — the table is generated from it.');
+      setGenError('ابتدا نیازمندی‌ها یا یادداشت‌ها را وارد کنید؛ Seed Data از روی آن‌ها ساخته می‌شود.');
       return;
     }
     if (problems.length) {
@@ -142,9 +145,9 @@ export default function App({ transport }: Props) {
     }
     if (ws.table && ws.table.rows.length > 0) {
       const ok = await confirm({
-        title: 'Replace the current table?',
-        message: 'The generated table below will be replaced. Use “Save table” first if you want to keep it. If generation fails, the current table is kept.',
-        confirmLabel: 'Generate new table',
+        title: 'Seed Dataهای فعلی جایگزین شوند؟',
+        message: 'جدول فعلی با نتیجهٔ جدید جایگزین می‌شود. اگر می‌خواهید نگهش دارید، اول «ذخیره» را بزنید. اگر ساخت ناموفق باشد، جدول فعلی دست نمی‌خورد.',
+        confirmLabel: 'ساخت دوباره',
       });
       if (!ok) return;
     }
@@ -162,14 +165,14 @@ export default function App({ transport }: Props) {
       update({ table });
       setShowValidation(true);
       const v = validateTable(table, ws.templateDraft, ws.standardDraft);
-      notify('success', `Generated ${table.rows.length} row${table.rows.length === 1 ? '' : 's'}${v.errors.length ? ` — ${v.errors.length} validation error${v.errors.length === 1 ? '' : 's'} to fix` : ''}.`);
+      notify('success', `${count(table.rows.length, 'Seed Data')} ساخته شد${v.errors.length ? ` — ${count(v.errors.length, 'خطا')} برای رفع` : ''}.`);
       requestAnimationFrame(() => tableRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' }));
     } catch (err) {
-      if (controller.signal.aborted) notify('info', 'Generation cancelled. Nothing was changed.');
+      if (controller.signal.aborted) notify('info', 'ساخت لغو شد. چیزی تغییر نکرد.');
       else {
-        const message = err instanceof GenerationError ? err.message : 'Something went wrong while generating.';
-        setGenError(`${message} Your input and current table were not changed.`);
-        notify('error', 'Generation failed.');
+        const message = err instanceof GenerationError ? err.message : 'هنگام ساخت مشکلی پیش آمد.';
+        setGenError(`${message} ورودی و جدول فعلی شما تغییری نکرد.`);
+        notify('error', 'ساخت Seed Data ناموفق بود.');
       }
     } finally {
       setBusy(null);
@@ -182,38 +185,38 @@ export default function App({ transport }: Props) {
 
   const saveTable = async () => {
     if (!ws.table) return;
-    const name = await prompt({ title: 'Save table', label: 'Name', initialValue: `${ws.templateDraft.name} – ${new Date().toLocaleDateString()}`, confirmLabel: 'Save' });
+    const name = await prompt({ title: 'ذخیرهٔ Seed Dataها', label: 'نام', initialValue: `Seed Data – ${new Date().toLocaleDateString('fa-IR')}`, confirmLabel: 'ذخیره' });
     if (!name) return;
     update((w) => ({ savedTables: [...w.savedTables, { id: newId('tbl'), name, table: structuredClone(w.table!), savedAt: nowIso() }] }));
-    notify('success', `Saved table “${name}”.`);
+    notify('success', `«${name}» ذخیره شد.`);
   };
 
   const openSavedTable = async (id: string) => {
     const saved = ws.savedTables.find((t) => t.id === id);
     if (!saved) return;
     if (ws.table && ws.table.rows.length > 0) {
-      const ok = await confirm({ title: 'Open saved table?', message: 'The table currently in the editor will be replaced.', confirmLabel: 'Open' });
+      const ok = await confirm({ title: 'باز کردن جدول ذخیره‌شده؟', message: 'جدولی که الان در حال ویرایش است جایگزین می‌شود.', confirmLabel: 'باز کردن' });
       if (!ok) return;
     }
     setTable(structuredClone(saved.table));
-    notify('success', `Opened “${saved.name}”.`);
+    notify('success', `«${saved.name}» باز شد.`);
   };
 
   const deleteSavedTable = async (id: string) => {
     const saved = ws.savedTables.find((t) => t.id === id);
     if (!saved) return;
-    const ok = await confirm({ title: 'Delete saved table?', message: `“${saved.name}” will be permanently deleted.`, confirmLabel: 'Delete', danger: true });
+    const ok = await confirm({ title: 'جدول ذخیره‌شده حذف شود؟', message: `«${saved.name}» برای همیشه حذف می‌شود.`, confirmLabel: 'حذف', danger: true });
     if (!ok) return;
     update((w) => ({ savedTables: w.savedTables.filter((t) => t.id !== id) }));
-    notify('success', 'Saved table deleted.');
+    notify('success', 'جدول ذخیره‌شده حذف شد.');
   };
 
   const updateTemplateFromTable = async () => {
     if (!ws.table) return;
     const ok = await confirm({
-      title: 'Update the template?',
-      message: `The columns of “${ws.templateDraft.name}” will be replaced with the ${ws.table.columns.length} columns of this table, and the template will be saved.`,
-      confirmLabel: 'Update template',
+      title: 'ساختار جدول به‌روز شود؟',
+      message: `ستون‌های «${ws.templateDraft.name}» با ${ws.table.columns.length} ستون همین جدول جایگزین و ذخیره می‌شوند.`,
+      confirmLabel: 'به‌روزرسانی ساختار',
     });
     if (!ok) return;
     update((w) => {
@@ -221,99 +224,68 @@ export default function App({ transport }: Props) {
       const exists = w.templates.some((t) => t.id === item.id);
       return { templateDraft: item, templates: exists ? w.templates.map((t) => (t.id === item.id ? item : t)) : [...w.templates, item] };
     });
-    notify('success', 'Template updated from the table.');
+    notify('success', 'ساختار جدول از روی جدول فعلی به‌روز شد.');
   };
 
   const clearTable = async () => {
-    const ok = await confirm({ title: 'Clear the table?', message: 'The generated table will be removed from the editor. Saved tables are not affected.', confirmLabel: 'Clear', danger: true });
+    const ok = await confirm({ title: 'جدول پاک شود؟', message: 'Seed Dataهای ساخته‌شده از صفحه پاک می‌شوند. جدول‌های ذخیره‌شده تغییری نمی‌کنند.', confirmLabel: 'پاک کردن', danger: true });
     if (ok) setTable(null);
   };
 
   const validateNow = () => {
     setShowValidation(true);
-    if (validation) notify(validation.ok ? 'success' : 'error', validation.ok ? 'Validation passed — no errors.' : `${validation.errors.length} validation error${validation.errors.length === 1 ? '' : 's'} found.`);
+    if (validation) notify(validation.ok ? 'success' : 'error', validation.ok ? 'Checklist بررسی شد؛ خطایی پیدا نشد.' : `${count(validation.errors.length, 'خطا')} پیدا شد.`);
   };
 
-  const tableName = ws.templateDraft.name || 'table';
+  const sourceLabel = { ai: 'ساخته‌شده با AI', basic: 'ساخته‌شده به‌صورت آفلاین', manual: 'دستی' } as const;
 
   return (
     <div className="app">
       <header className="topbar">
         <div>
-          <h1>Local Table Generator</h1>
-          <p className="tagline">Standard → structure → input → table → Confluence</p>
+          <h1>تولید Seed Data برای QA</h1>
+          <p className="tagline">طبق راهنمای Seed Data تیم QA — آماده برای Confluence و Reference در Zephyr</p>
         </div>
-        <button type="button" className="btn provider-chip" onClick={() => setSettingsOpen(true)} title="Choose how tables are generated">
+        <button type="button" className="btn provider-chip" onClick={() => setSettingsOpen(true)} title="انتخاب روش ساخت Seed Data">
           <span className={`dot ${ws.settings.provider === 'basic' ? 'off' : 'on'}`} aria-hidden="true" />
-          {providerLabel(ws.settings)} · Settings
+          {providerLabel(ws.settings)} · تنظیمات
         </button>
       </header>
 
       <main>
-        <div className="two-col">
-          <Section step={1} title="Standard" hint="The rules every generated table must follow. Saved standards can be reused.">
-            <SavedItemBar
-              noun="standard"
-              items={std.list}
-              activeId={std.draft.id}
-              dirty={std.dirty}
-              onSelect={std.select}
-              onNew={std.create}
-              onSave={std.save}
-              onRename={std.rename}
-              onDuplicate={std.duplicate}
-              onDelete={std.remove}
-            />
-            <StandardEditor standard={std.draft} onChange={std.setDraft} />
-          </Section>
+        <GuidePanel />
 
-          <Section step={2} title="Table structure" hint="Columns in the exact order they should appear. Checked rules are validated automatically.">
-            <SavedItemBar
-              noun="template"
-              items={tpl.list}
-              activeId={tpl.draft.id}
-              dirty={tpl.dirty}
-              onSelect={tpl.select}
-              onNew={tpl.create}
-              onSave={tpl.save}
-              onRename={tpl.rename}
-              onDuplicate={tpl.duplicate}
-              onDelete={tpl.remove}
-            />
-            <TemplateEditor template={tpl.draft} onChange={tpl.setDraft} />
-          </Section>
-        </div>
-
-        <Section step={3} title="Input" hint="Paste requirements, notes, user stories, acceptance criteria or a rough table.">
+        <Section step={1} title="نیازمندی‌ها و یادداشت‌ها" hint="داده‌هایی را که تست‌ها لازم دارند توضیح دهید: Feature، Entityها، وضعیت‌ها (Status)، محیط (Environment)، Test Caseهای مرتبط و روش ساخت.">
           <textarea
             className="input-area"
+            dir="rtl"
             value={ws.input}
             onChange={(e) => update({ input: e.target.value })}
-            placeholder="Paste your source text here…"
-            aria-label="Input text"
+            placeholder="مثلاً: برای تست Order Management در UAT یک Vendor فعال و یک Order در وضعیت Pending لازم داریم…"
+            aria-label="متن ورودی"
             rows={10}
           />
           <div className="row-between">
-            <span className="hint">{ws.input.trim() ? `${ws.input.length.toLocaleString()} characters` : 'Input is empty.'}</span>
+            <span className="hint">{ws.input.trim() ? `${ws.input.length.toLocaleString('fa-IR')} کاراکتر` : 'ورودی خالی است.'}</span>
             <div className="btn-group">
               <button
                 type="button"
                 className="btn btn-sm"
                 onClick={async () => {
-                  if (!ws.input.trim() || (await confirm({ title: 'Replace input?', message: 'The current input will be replaced with the example text.', confirmLabel: 'Use example' }))) update({ input: exampleInputFor(ws.templateDraft.id) });
+                  if (!ws.input.trim() || (await confirm({ title: 'جایگزینی ورودی؟', message: 'متن فعلی با متن نمونه جایگزین می‌شود.', confirmLabel: 'استفاده از نمونه' }))) update({ input: seedDataInput });
                 }}
               >
-                Use example
+                متن نمونه
               </button>
               <button
                 type="button"
                 className="btn btn-sm"
                 disabled={!ws.input}
                 onClick={async () => {
-                  if (await confirm({ title: 'Clear input?', message: 'The input text will be removed.', confirmLabel: 'Clear', danger: true })) update({ input: '' });
+                  if (await confirm({ title: 'پاک کردن ورودی؟', message: 'متن ورودی پاک می‌شود.', confirmLabel: 'پاک کردن', danger: true })) update({ input: '' });
                 }}
               >
-                Clear
+                پاک کردن
               </button>
             </div>
           </div>
@@ -322,27 +294,28 @@ export default function App({ transport }: Props) {
             <button type="button" className="btn btn-primary btn-lg" onClick={generate} disabled={!!busy}>
               {busy ? (
                 <>
-                  <span className="spinner" aria-hidden="true" /> Generating…
+                  <span className="spinner" aria-hidden="true" /> در حال ساخت…
                 </>
               ) : (
-                'Generate table'
+                'ساخت Seed Data'
               )}
             </button>
             {busy && (
               <button type="button" className="btn" onClick={() => busy.abort()}>
-                Cancel
+                لغو
               </button>
             )}
             <span className="hint">
-              Using <b>{providerLabel(ws.settings)}</b> with “{std.draft.name || 'Untitled standard'}” and “{tpl.draft.name || 'Untitled template'}”.
+              با <b>{providerLabel(ws.settings)}</b> و طبق «{std.draft.name || 'استاندارد بدون نام'}». اطلاعاتی که در ورودی نیست ساخته نمی‌شود و با Not specified مشخص
+              می‌شود.
               {ws.settings.provider === 'basic' && (
                 <>
                   {' '}
-                  Offline mode only copies input lines into rows —{' '}
+                  حالت آفلاین فقط خطوط ورودی را به ردیف تبدیل می‌کند —{' '}
                   <button type="button" className="link" onClick={() => setSettingsOpen(true)}>
-                    set up AI
-                  </button>{' '}
-                  for real generation.
+                    Claude Code را فعال کنید
+                  </button>
+                  .
                 </>
               )}
             </span>
@@ -354,51 +327,100 @@ export default function App({ transport }: Props) {
           )}
         </Section>
 
-        <Section step={4} title="Review and edit" hint="Edit any cell. Changes here never alter the saved template." ref={tableRef}>
+        <Section step={2} title="بررسی و ویرایش Seed Dataها" hint="هر ردیف یک Seed Data است و همهٔ سلول‌ها قابل ویرایش‌اند. تغییرات اینجا روی استاندارد و ساختار ذخیره‌شده اثری ندارد." ref={tableRef}>
           {!ws.table ? (
             <div className="empty big">
-              <p>No table yet.</p>
-              <p className="hint">Fill in steps 1–3 and click “Generate table”.</p>
+              <p>هنوز Seed Dataای ساخته نشده است.</p>
+              <p className="hint">نیازمندی‌ها را در مرحلهٔ ۱ وارد کنید و «ساخت Seed Data» را بزنید.</p>
               {ws.savedTables.length > 0 && <SavedTablesPicker tables={ws.savedTables} onOpen={openSavedTable} onDelete={deleteSavedTable} />}
             </div>
           ) : (
             <>
               <div className="toolbar">
                 <button type="button" className="btn btn-sm btn-primary" onClick={validateNow}>
-                  Validate
+                  بررسی با Checklist
                 </button>
                 <button type="button" className="btn btn-sm" onClick={generate} disabled={!!busy}>
-                  Regenerate
+                  ساخت دوباره
                 </button>
                 <button type="button" className="btn btn-sm" onClick={saveTable}>
-                  Save table
-                </button>
-                <button type="button" className="btn btn-sm" onClick={updateTemplateFromTable} title="Copy this table's columns into the saved template">
-                  Update template from table
+                  ذخیره
                 </button>
                 <button type="button" className="btn btn-sm btn-ghost-danger" onClick={clearTable}>
-                  Clear table
+                  پاک کردن جدول
                 </button>
                 {validation && (
                   <span className={`badge ${validation.ok ? 'ok' : 'bad'}`}>
-                    {validation.ok ? '✓ No errors' : `${validation.errors.length} error${validation.errors.length === 1 ? '' : 's'}`}
-                    {validation.warnings.length ? ` · ${validation.warnings.length} to review` : ''}
+                    {validation.ok ? '✓ بدون خطا' : count(validation.errors.length, 'خطا')}
+                    {validation.warnings.length ? ` · ${count(validation.warnings.length, 'مورد برای بررسی')}` : ''}
                   </span>
                 )}
                 <span className="hint grow-right">
-                  {ws.table.rows.length} rows · {ws.table.source === 'ai' ? 'AI generated' : ws.table.source === 'basic' ? 'Offline generated' : 'Manual'}
+                  {count(ws.table.rows.length, 'Seed Data')} · {sourceLabel[ws.table.source]}
                 </span>
               </div>
               <TableEditor table={ws.table} issues={validation ? [...validation.errors, ...validation.warnings] : []} onChange={setTable} />
-              {showValidation && validation && <ValidationPanel result={validation} notes={ws.table.notes} />}
+              {showValidation && validation && <ValidationPanel table={ws.table} result={validation} notes={ws.table.notes} />}
               {ws.savedTables.length > 0 && <SavedTablesPicker tables={ws.savedTables} onOpen={openSavedTable} onDelete={deleteSavedTable} />}
             </>
           )}
         </Section>
 
-        <Section step={5} title="Copy or export for Confluence" hint="Column names and order are kept exactly as in the table above.">
-          {ws.table ? <ExportPanel table={ws.table} name={tableName} hasErrors={!!validation && !validation.ok} /> : <p className="empty">Generate a table first.</p>}
+        <Section step={3} title="انتقال به Confluence و Zephyr" hint="جزئیات Seed Data در Confluence نگه داشته می‌شود و Test Caseهای Zephyr فقط به Seed Data ID ارجاع می‌دهند.">
+          {ws.table ? (
+            <ExportPanel table={ws.table} name={ws.templateDraft.name || 'seed-data'} hasErrors={!!validation && !validation.ok} />
+          ) : (
+            <p className="empty">اول Seed Data بسازید.</p>
+          )}
         </Section>
+
+        <details className="card advanced">
+          <summary>
+            <strong>تنظیمات پیشرفته: استاندارد و ساختار جدول</strong>
+            <span className="hint"> — فقط وقتی راهنمای تیم تغییر کرد</span>
+          </summary>
+          <div className="two-col">
+            <section className="stack" aria-label="استاندارد">
+              <h3>استاندارد</h3>
+              <p className="hint">قوانینی که هر Seed Data باید رعایت کند. به‌صورت پیش‌فرض، راهنمای Seed Data تیم QA.</p>
+              <SavedItemBar
+                noun="استاندارد"
+                items={std.list}
+                activeId={std.draft.id}
+                dirty={std.dirty}
+                onSelect={std.select}
+                onNew={std.create}
+                onSave={std.save}
+                onRename={std.rename}
+                onDuplicate={std.duplicate}
+                onDelete={std.remove}
+              />
+              <StandardEditor standard={std.draft} onChange={std.setDraft} />
+            </section>
+            <section className="stack" aria-label="ساختار جدول">
+              <h3>ساختار جدول</h3>
+              <p className="hint">ستون‌ها به همین ترتیب در خروجی Confluence می‌آیند. قوانین بررسی خودکار در Checklist استفاده می‌شوند.</p>
+              <SavedItemBar
+                noun="ساختار جدول"
+                items={tpl.list}
+                activeId={tpl.draft.id}
+                dirty={tpl.dirty}
+                onSelect={tpl.select}
+                onNew={tpl.create}
+                onSave={tpl.save}
+                onRename={tpl.rename}
+                onDuplicate={tpl.duplicate}
+                onDelete={tpl.remove}
+              />
+              <TemplateEditor template={tpl.draft} onChange={tpl.setDraft} />
+              {ws.table && (
+                <button type="button" className="btn btn-sm" onClick={updateTemplateFromTable} title="ستون‌های جدول فعلی را در ساختار ذخیره‌شده قرار می‌دهد">
+                  به‌روزرسانی ساختار از روی جدول فعلی
+                </button>
+              )}
+            </section>
+          </div>
+        </details>
       </main>
 
       {settingsOpen && (
@@ -407,7 +429,7 @@ export default function App({ transport }: Props) {
           onClose={() => setSettingsOpen(false)}
           onSave={(settings) => {
             update({ settings });
-            notify('success', `Generation set to ${providerLabel(settings)}.`);
+            notify('success', `روش ساخت: ${providerLabel(settings)}.`);
           }}
         />
       )}
@@ -428,7 +450,7 @@ function Section({ step, title, hint, children, ref }: SectionProps) {
     <section className="card" ref={ref} aria-labelledby={`step-${step}`}>
       <div className="card-head">
         <span className="step" aria-hidden="true">
-          {step}
+          {step.toLocaleString('fa-IR')}
         </span>
         <div>
           <h2 id={`step-${step}`}>{title}</h2>
@@ -443,19 +465,19 @@ function Section({ step, title, hint, children, ref }: SectionProps) {
 function SavedTablesPicker({ tables, onOpen, onDelete }: { tables: Workspace['savedTables']; onOpen: (id: string) => void; onDelete: (id: string) => void }) {
   return (
     <details className="saved-tables">
-      <summary>Saved tables ({tables.length})</summary>
+      <summary>Seed Dataهای ذخیره‌شده ({tables.length})</summary>
       <ul>
         {tables.map((t) => (
           <li key={t.id}>
             <span>
-              {t.name} <small className="hint">· {t.table.rows.length} rows · {new Date(t.savedAt).toLocaleString()}</small>
+              {t.name} <small className="hint">· {count(t.table.rows.length, 'ردیف')} · {new Date(t.savedAt).toLocaleString('fa-IR')}</small>
             </span>
             <span className="btn-group">
               <button type="button" className="btn btn-sm" onClick={() => onOpen(t.id)}>
-                Open
+                باز کردن
               </button>
-              <button type="button" className="btn btn-sm btn-ghost-danger" onClick={() => onDelete(t.id)} aria-label={`Delete saved table ${t.name}`}>
-                Delete
+              <button type="button" className="btn btn-sm btn-ghost-danger" onClick={() => onDelete(t.id)} aria-label={`حذف ${t.name}`}>
+                حذف
               </button>
             </span>
           </li>

@@ -6,11 +6,11 @@ interface Props {
 }
 
 const FIELDS: { key: keyof Standard; label: string; hint: string; rows: number }[] = [
-  { key: 'description', label: 'Description', hint: 'What this standard is for.', rows: 2 },
-  { key: 'rules', label: 'Rules and constraints', hint: 'One rule per line.', rows: 4 },
-  { key: 'requiredContent', label: 'Required content', hint: 'What must always be covered.', rows: 2 },
-  { key: 'validationCriteria', label: 'Validation criteria', hint: 'How a reviewer decides the table is correct.', rows: 2 },
-  { key: 'examples', label: 'Examples of correct output', hint: 'Optional. A sample row or two.', rows: 2 },
+  { key: 'description', label: 'توضیح', hint: 'این استاندارد برای چیست.', rows: 2 },
+  { key: 'rules', label: 'قوانین و محدودیت‌ها', hint: 'هر قانون در یک خط.', rows: 6 },
+  { key: 'requiredContent', label: 'محتوای اجباری', hint: 'چه چیزی همیشه باید پوشش داده شود.', rows: 2 },
+  { key: 'validationCriteria', label: 'معیارهای Validation', hint: 'بازبین چطور تشخیص می‌دهد خروجی درست است.', rows: 3 },
+  { key: 'examples', label: 'نمونهٔ خروجی درست', hint: 'اختیاری. یک یا دو نمونه.', rows: 3 },
 ];
 
 export function StandardEditor({ standard, onChange }: Props) {
@@ -18,7 +18,7 @@ export function StandardEditor({ standard, onChange }: Props) {
   return (
     <div className="stack">
       <label className="field">
-        <span>Standard name</span>
+        <span>نام استاندارد</span>
         <input value={standard.name} onChange={(e) => set('name', e.target.value)} />
       </label>
       {FIELDS.map((f) => (
@@ -26,7 +26,7 @@ export function StandardEditor({ standard, onChange }: Props) {
           <span>
             {f.label} <small>{f.hint}</small>
           </span>
-          <textarea rows={f.rows} value={standard[f.key] as string} onChange={(e) => set(f.key, e.target.value)} />
+          <textarea dir="auto" rows={f.rows} value={standard[f.key] as string} onChange={(e) => set(f.key, e.target.value)} />
         </label>
       ))}
     </div>

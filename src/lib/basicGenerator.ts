@@ -38,7 +38,7 @@ export function generateBasic(input: string, columns: ColumnDef[]): BasicResult 
     columns.forEach((col) => {
       if (!row[col.id]) {
         row[col.id] = NOT_SPECIFIED;
-        if (col.required) notes.push({ level: 'warning', message: `Row ${rows.length + 1}: "${col.name}" was not found in the input.`, row: rows.length, columnId: col.id });
+        if (col.required) notes.push({ level: 'warning', rule: 'generation', message: `ردیف ${rows.length + 1}: «${col.name}» در ورودی پیدا نشد.`, row: rows.length, columnId: col.id });
       }
     });
     rows.push(row);
@@ -52,7 +52,8 @@ interface Item {
 }
 
 function pickPrimaryColumn(columns: ColumnDef[]): ColumnDef | undefined {
-  const idLike = /^(id|#|no\.?|nr\.?|number|key|ref(erence)?)$/i;
+  // Identifier columns ("ID", "Seed Data ID", "Ref"…) never receive free text.
+  const idLike = /(^|\s)(id|#|no\.?|nr\.?|number|key|ref(erence)?)$/i;
   return columns.find((c) => c.required && !idLike.test(c.name.trim())) ?? columns.find((c) => !idLike.test(c.name.trim())) ?? columns[0];
 }
 

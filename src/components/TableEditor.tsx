@@ -24,9 +24,9 @@ export function TableEditor({ table, issues, onChange }: Props) {
     const hasData = table.rows.some((r) => (r.cells[colId] ?? '').trim());
     if (hasData) {
       const ok = await confirm({
-        title: 'Remove column?',
-        message: `The values in "${col.name}" will be removed from this table. The saved template is not changed.`,
-        confirmLabel: 'Remove column',
+        title: 'حذف ستون؟',
+        message: `مقدارهای ستون «${col.name}» از این جدول حذف می‌شوند. ساختار ذخیره‌شده تغییر نمی‌کند.`,
+        confirmLabel: 'حذف ستون',
         danger: true,
       });
       if (!ok) return;
@@ -43,7 +43,7 @@ export function TableEditor({ table, issues, onChange }: Props) {
   };
 
   const addColumn = () => {
-    const col = blankColumn(`New column ${table.columns.length + 1}`);
+    const col = blankColumn(`ستون جدید ${table.columns.length + 1}`);
     onChange({ ...table, columns: [...table.columns, col], rows: table.rows.map((r) => ({ ...r, cells: { ...r.cells, [col.id]: '' } })) });
   };
 
@@ -53,7 +53,7 @@ export function TableEditor({ table, issues, onChange }: Props) {
   const moveColumn = (from: number, to: number) => onChange({ ...table, columns: moveItem(table.columns, from, to) });
 
   return (
-    <div className="table-wrap">
+    <div className="table-wrap" dir="ltr">
       <table className="grid">
         <thead>
           <tr>
@@ -63,15 +63,15 @@ export function TableEditor({ table, issues, onChange }: Props) {
             {table.columns.map((col, i) => (
               <th key={col.id} scope="col" className={levelAt(undefined, col.id)}>
                 <div className="th-inner">
-                  <input value={col.name} aria-label={`Column ${i + 1} header`} onChange={(e) => renameColumn(col.id, e.target.value)} />
+                  <input value={col.name} aria-label={`عنوان ستون ${i + 1}`} onChange={(e) => renameColumn(col.id, e.target.value)} />
                   <div className="btn-group">
-                    <button type="button" className="icon-btn" aria-label={`Move column ${col.name} left`} disabled={i === 0} onClick={() => moveColumn(i, i - 1)}>
+                    <button type="button" className="icon-btn" aria-label={`انتقال ستون ${col.name} به چپ`} disabled={i === 0} onClick={() => moveColumn(i, i - 1)}>
                       ←
                     </button>
-                    <button type="button" className="icon-btn" aria-label={`Move column ${col.name} right`} disabled={i === table.columns.length - 1} onClick={() => moveColumn(i, i + 1)}>
+                    <button type="button" className="icon-btn" aria-label={`انتقال ستون ${col.name} به راست`} disabled={i === table.columns.length - 1} onClick={() => moveColumn(i, i + 1)}>
                       →
                     </button>
-                    <button type="button" className="icon-btn danger" aria-label={`Remove column ${col.name}`} onClick={() => removeColumn(col.id)}>
+                    <button type="button" className="icon-btn danger" aria-label={`حذف ستون ${col.name}`} onClick={() => removeColumn(col.id)}>
                       ×
                     </button>
                   </div>
@@ -80,7 +80,7 @@ export function TableEditor({ table, issues, onChange }: Props) {
             ))}
             <th className="row-actions" scope="col">
               <button type="button" className="btn btn-sm" onClick={addColumn}>
-                + Column
+                + ستون
               </button>
             </th>
           </tr>
@@ -89,7 +89,7 @@ export function TableEditor({ table, issues, onChange }: Props) {
           {table.rows.length === 0 && (
             <tr>
               <td colSpan={table.columns.length + 2} className="empty">
-                No rows. Add a row or generate the table again.
+                ردیفی وجود ندارد. یک ردیف اضافه کنید یا Seed Data را دوباره بسازید.
               </td>
             </tr>
           )}
@@ -103,20 +103,21 @@ export function TableEditor({ table, issues, onChange }: Props) {
                   <textarea
                     rows={2}
                     value={row.cells[col.id] ?? ''}
-                    aria-label={`Row ${r + 1}, ${col.name}`}
+                    dir="auto"
+                    aria-label={`ردیف ${r + 1}، ${col.name}`}
                     onChange={(e) => setCell(row.id, col.id, e.target.value)}
                   />
                 </td>
               ))}
               <td className="row-actions">
                 <div className="btn-group">
-                  <button type="button" className="icon-btn" aria-label={`Move row ${r + 1} up`} disabled={r === 0} onClick={() => moveRow(r, r - 1)}>
+                  <button type="button" className="icon-btn" aria-label={`انتقال ردیف ${r + 1} به بالا`} disabled={r === 0} onClick={() => moveRow(r, r - 1)}>
                     ↑
                   </button>
-                  <button type="button" className="icon-btn" aria-label={`Move row ${r + 1} down`} disabled={r === table.rows.length - 1} onClick={() => moveRow(r, r + 1)}>
+                  <button type="button" className="icon-btn" aria-label={`انتقال ردیف ${r + 1} به پایین`} disabled={r === table.rows.length - 1} onClick={() => moveRow(r, r + 1)}>
                     ↓
                   </button>
-                  <button type="button" className="icon-btn danger" aria-label={`Delete row ${r + 1}`} onClick={() => deleteRow(row.id)}>
+                  <button type="button" className="icon-btn danger" aria-label={`حذف ردیف ${r + 1}`} onClick={() => deleteRow(row.id)}>
                     ×
                   </button>
                 </div>
@@ -126,7 +127,7 @@ export function TableEditor({ table, issues, onChange }: Props) {
         </tbody>
       </table>
       <button type="button" className="btn btn-sm add-row" onClick={addRow}>
-        + Add row
+        + افزودن ردیف
       </button>
     </div>
   );

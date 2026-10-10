@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { defaultWorkspace, exampleStandard, exampleTemplate, seedDataStandard, seedDataTemplate } from './defaults';
+import { exampleStandard, exampleTemplate } from '../test/fixtures';
+import { defaultWorkspace, seedDataStandard, seedDataTemplate } from './defaults';
 import type { ColumnDef, Workspace } from './types';
 import { loadWorkspace, saveWorkspace, STORAGE_KEY } from './storage';
 
@@ -7,7 +8,7 @@ describe('storage', () => {
   it('starts with example data when nothing is stored', () => {
     const { workspace, warning } = loadWorkspace(localStorage);
     expect(warning).toBeUndefined();
-    expect(workspace.standards).toHaveLength(2);
+    expect(workspace.standards.map((s) => s.id)).toEqual([seedDataStandard.id]);
     expect(workspace.templates[0].columns.length).toBeGreaterThan(0);
   });
 
@@ -22,15 +23,15 @@ describe('storage', () => {
   it('keeps a backup of unreadable data instead of overwriting it silently', () => {
     localStorage.setItem(STORAGE_KEY, '{broken');
     const { workspace, warning } = loadWorkspace(localStorage);
-    expect(warning).toMatch(/backup/);
-    expect(workspace.standards).toHaveLength(2);
+    expect(warning).toMatch(/پشتیبان/);
+    expect(workspace.standards.map((s) => s.id)).toEqual([seedDataStandard.id]);
     const backupKey = Object.keys(localStorage).find((k) => k.startsWith(`${STORAGE_KEY}:backup-`));
     expect(backupKey && localStorage.getItem(backupKey)).toBe('{broken');
   });
 
   it('reports quota errors', () => {
     const full = { setItem: () => { throw Object.assign(new Error('full'), { name: 'QuotaExceededError' }); } } as unknown as Storage;
-    expect(saveWorkspace(defaultWorkspace(), full)).toMatch(/full/);
+    expect(saveWorkspace(defaultWorkspace(), full)).toMatch(/پر است/);
   });
 });
 

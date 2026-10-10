@@ -59,10 +59,10 @@ describe('Claude Code provider', () => {
     await expect(generateWithClaudeCode(request())).rejects.toThrow(/Not logged in/);
 
     process.env.CLAUDE_CODE_PATH = join(dir, 'does-not-exist');
-    await expect(generateWithClaudeCode(request())).rejects.toThrow(/not found/);
+    await expect(generateWithClaudeCode(request())).rejects.toThrow(/پیدا نشد/);
 
     process.env.CLAUDE_CODE_PATH = fakeCli(`process.stderr.write('boom'); process.exit(2);`);
-    await expect(generateWithClaudeCode(request())).rejects.toThrow(/exit code 2.*boom/);
+    await expect(generateWithClaudeCode(request())).rejects.toThrow(/کد خروج 2.*boom/);
 
     process.env.CLAUDE_CODE_PATH = fakeCli(`setTimeout(() => {}, 60_000);`);
     await expect(generateWithClaudeCode(request(300))).rejects.toBeInstanceOf(ProviderError);

@@ -36,11 +36,11 @@ export const httpTransport: AiTransport = async (req, signal) => {
     });
   } catch (err) {
     if (signal.aborted) throw err;
-    throw new GenerationError('Could not reach the local AI endpoint. Is `npm run dev` still running?');
+    throw new GenerationError('سرور محلی در دسترس نیست. آیا `npm run dev` هنوز در حال اجراست؟');
   }
   const body = (await res.json().catch(() => null)) as { text?: string; error?: string } | null;
   if (!res.ok || typeof body?.text !== 'string') {
-    throw new GenerationError(body?.error ?? `The AI request failed (HTTP ${res.status}).`);
+    throw new GenerationError(body?.error ?? `درخواست AI ناموفق بود (HTTP ${res.status}).`);
   }
   return body.text;
 };
@@ -59,13 +59,13 @@ export interface GenerateArgs {
  * existing state, so the caller decides when to replace the current table.
  */
 export async function generateTable({ standard, template, input, settings, signal, transport = httpTransport }: GenerateArgs): Promise<GeneratedTable> {
-  if (!input.trim()) throw new GenerationError('Add some input text first — the table is generated from it.');
+  if (!input.trim()) throw new GenerationError('ابتدا نیازمندی‌ها یا یادداشت‌ها را وارد کنید؛ Seed Data از روی آن‌ها ساخته می‌شود.');
   const problems = templateProblems(template);
   if (problems.length) throw new GenerationError(problems.join(' '));
 
   if (settings.provider === 'basic') {
     const { rows, notes } = generateBasic(input, template.columns);
-    if (rows.length === 0) throw new GenerationError('No rows could be created from the input.');
+    if (rows.length === 0) throw new GenerationError('از ورودی هیچ ردیفی ساخته نشد.');
     return tableFromRows(template.columns, rows, 'basic', notes);
   }
 
@@ -90,15 +90,15 @@ export async function generateTable({ standard, template, input, settings, signa
     );
   } catch (err) {
     if (signal.aborted) throw err;
-    if (timeout.aborted) throw new GenerationError(`The AI did not answer within ${settings.timeoutSeconds} seconds. Try again or raise the timeout in Settings.`);
+    if (timeout.aborted) throw new GenerationError(`AI در ${settings.timeoutSeconds} ثانیه پاسخ نداد. دوباره تلاش کنید یا در تنظیمات زمان انتظار را بیشتر کنید.`);
     if (err instanceof GenerationError) throw err;
-    throw new GenerationError(err instanceof Error ? err.message : 'The AI request failed.');
+    throw new GenerationError(err instanceof Error ? err.message : 'درخواست AI ناموفق بود.');
   }
 
   try {
     const { rows, notes } = normalizeResponse(text, template.columns);
     return tableFromRows(template.columns, rows, 'ai', notes);
   } catch (err) {
-    throw new GenerationError(err instanceof Error ? err.message : 'The AI response could not be used.');
+    throw new GenerationError(err instanceof Error ? err.message : 'پاسخ AI قابل استفاده نبود.');
   }
 }

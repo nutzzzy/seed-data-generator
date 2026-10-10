@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { generateBasic } from './basicGenerator';
-import { defaultSettings, exampleStandard, exampleTemplate } from './defaults';
+import { exampleStandard, exampleTemplate } from '../test/fixtures';
+import { defaultSettings } from './defaults';
 import { generateTable, GenerationError, type AiTransport } from './generate';
 import { blankColumn } from './model';
 import { extractJson, normalizeResponse } from './parseResponse';
@@ -46,7 +47,7 @@ describe('normalizeResponse', () => {
       [tpl.columns[4].id]: '3',
       [tpl.columns[5].id]: NOT_SPECIFIED,
     });
-    expect(notes.map((n) => n.message)).toEqual(['Ignored fields that are not table columns: extra.', 'Row 1: "Priority": No priority in source']);
+    expect(notes.map((n) => n.message)).toEqual(['فیلدهایی که جزو ستون‌ها نبودند نادیده گرفته شدند: extra.', 'ردیف 1: «Priority»: No priority in source']);
   });
 
   it('accepts JSON wrapped in prose or code fences, and positional arrays', () => {
@@ -56,10 +57,10 @@ describe('normalizeResponse', () => {
   });
 
   it('rejects malformed answers', () => {
-    expect(() => normalizeResponse('not json at all', tpl.columns)).toThrow('not valid JSON');
-    expect(() => normalizeResponse('{"data": 1}', tpl.columns)).toThrow('"rows"');
-    expect(() => normalizeResponse('{"rows": []}', tpl.columns)).toThrow('no rows');
-    expect(() => normalizeResponse('{"rows": ["x"]}', tpl.columns)).toThrow('not an object');
+    expect(() => normalizeResponse('not json at all', tpl.columns)).toThrow('JSON معتبر نبود');
+    expect(() => normalizeResponse('{"data": 1}', tpl.columns)).toThrow('فهرست «rows»');
+    expect(() => normalizeResponse('{"rows": []}', tpl.columns)).toThrow('هیچ ردیفی');
+    expect(() => normalizeResponse('{"rows": ["x"]}', tpl.columns)).toThrow('شیء نیست');
   });
 });
 
@@ -72,7 +73,7 @@ describe('generateBasic (offline)', () => {
     expect(rows[0][id]).toBe(NOT_SPECIFIED);
     expect(rows[1][scen]).toBe('Second thing');
     expect(rows[1][prio]).toBe('Low');
-    expect(notes.some((n) => n.message === 'Row 1: "ID" was not found in the input.')).toBe(true);
+    expect(notes.some((n) => n.message === 'ردیف 1: «ID» در ورودی پیدا نشد.')).toBe(true);
   });
 
   it('maps a pasted Markdown table and key/value blocks by column name', () => {
@@ -98,7 +99,7 @@ describe('generateTable', () => {
     const transport = vi.fn<AiTransport>();
     await expect(generateTable({ standard: exampleStandard, template: tpl, input: '  ', settings: anthropic, signal: signal(), transport })).rejects.toThrow(GenerationError);
     const dupes: Template = { ...tpl, columns: [blankColumn('A'), blankColumn('a')] };
-    await expect(generateTable({ standard: exampleStandard, template: dupes, input: 'x', settings: anthropic, signal: signal(), transport })).rejects.toThrow('used more than once');
+    await expect(generateTable({ standard: exampleStandard, template: dupes, input: 'x', settings: anthropic, signal: signal(), transport })).rejects.toThrow('بیش از یک بار');
     expect(transport).not.toHaveBeenCalled();
   });
 
@@ -116,10 +117,10 @@ describe('generateTable', () => {
   it('wraps provider failures, malformed responses and timeouts in GenerationError', async () => {
     const args = { standard: exampleStandard, template: tpl, input: 'x', settings: anthropic, signal: signal() };
     await expect(generateTable({ ...args, transport: () => Promise.reject(new GenerationError('API key rejected')) })).rejects.toThrow('API key rejected');
-    await expect(generateTable({ ...args, transport: () => Promise.resolve('Sorry, I cannot.') })).rejects.toThrow('not valid JSON');
+    await expect(generateTable({ ...args, transport: () => Promise.resolve('Sorry, I cannot.') })).rejects.toThrow('JSON معتبر نبود');
 
     const slow: AiTransport = (_req, s) => new Promise((_, reject) => s.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError'))));
-    await expect(generateTable({ ...args, settings: { ...anthropic, timeoutSeconds: 0.01 }, transport: slow })).rejects.toThrow(/did not answer within/);
+    await expect(generateTable({ ...args, settings: { ...anthropic, timeoutSeconds: 0.01 }, transport: slow })).rejects.toThrow(/پاسخ نداد/);
   }, 10_000);
 
   it('uses Claude Code by default and lets it pick its own model', async () => {

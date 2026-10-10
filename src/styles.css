@@ -18,7 +18,8 @@
   --success-soft: #e5f5ea;
   --radius: 8px;
   --shadow: 0 1px 2px rgb(16 24 40 / 6%), 0 1px 3px rgb(16 24 40 / 8%);
-  --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  /* Persian-capable fonts first; all are optional local fonts, nothing is downloaded. */
+  --font: Vazirmatn, 'Noto Sans Arabic', 'Segoe UI', Tahoma, system-ui, -apple-system, Roboto, Arial, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color-scheme: light dark;
 }
@@ -54,11 +55,12 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 14px/1.5 var(--font);
+  font: 14px/1.7 var(--font);
 }
 
 h1,
 h2,
+h3,
 h4 {
   margin: 0;
   line-height: 1.25;
@@ -68,6 +70,9 @@ h1 {
 }
 h2 {
   font-size: 16px;
+}
+h3 {
+  font-size: 15px;
 }
 h4 {
   font-size: 13px;
@@ -385,12 +390,13 @@ small {
   color: var(--muted);
   font-size: 12px;
   width: 16px;
-  text-align: right;
+  text-align: end;
 }
 .column-body {
   display: grid;
   gap: 6px;
-  margin: 6px 0 0 24px;
+  margin-block-start: 6px;
+  margin-inline-start: 24px;
 }
 .column-body input {
   font-size: 13px;
@@ -411,8 +417,6 @@ details summary {
 /* ---------- Input & generate ---------- */
 .input-area {
   min-height: 180px;
-  font-family: var(--mono);
-  font-size: 13px;
 }
 .generate-bar {
   display: flex;
@@ -457,7 +461,7 @@ details summary {
   margin-bottom: 10px;
 }
 .grow-right {
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 .badge {
   font-size: 12px;
@@ -479,18 +483,19 @@ details summary {
 }
 .grid {
   border-collapse: collapse;
-  width: 100%;
-  min-width: max-content;
+  width: max-content;
+  min-width: 100%;
 }
 .grid th,
 .grid td {
   border-bottom: 1px solid var(--border);
-  border-right: 1px solid var(--border);
+  border-inline-end: 1px solid var(--border);
   vertical-align: top;
   padding: 0;
 }
 .grid thead th {
   background: var(--surface-2);
+  text-align: start;
   position: sticky;
   top: 0;
 }
@@ -499,9 +504,11 @@ details summary {
   align-items: center;
   gap: 2px;
   padding: 4px;
-  min-width: 180px;
+  width: 260px;
 }
 .th-inner input {
+  flex: 1;
+  min-width: 0;
   font-weight: 600;
   border-color: transparent;
   background: transparent;
@@ -518,7 +525,8 @@ details summary {
   border: none;
   border-radius: 0;
   background: transparent;
-  min-width: 180px;
+  /* A fixed width: with field-sizing: content only the height follows the text. */
+  width: 260px;
   min-height: 56px;
   resize: vertical;
   field-sizing: content;
@@ -575,7 +583,7 @@ details summary {
 }
 .issues {
   margin: 0;
-  padding-left: 18px;
+  padding-inline-start: 18px;
   display: grid;
   gap: 2px;
 }
@@ -601,7 +609,7 @@ details summary {
 }
 .saved-tables {
   margin-top: 12px;
-  text-align: left;
+  text-align: start;
 }
 .saved-tables ul {
   list-style: none;
@@ -631,7 +639,7 @@ details summary {
 .export-option {
   display: grid;
   gap: 2px;
-  text-align: left;
+  text-align: start;
   padding: 10px 12px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
@@ -658,7 +666,7 @@ details summary {
 }
 .help ol {
   margin: 8px 0 0;
-  padding-left: 20px;
+  padding-inline-start: 20px;
 }
 
 /* ---------- Dialogs & toasts ---------- */
@@ -731,7 +739,7 @@ details summary {
 }
 .howto ol {
   margin: 4px 0;
-  padding-left: 20px;
+  padding-inline-start: 20px;
 }
 .howto .hint {
   margin: 6px 0 0;
@@ -748,7 +756,7 @@ details summary {
 }
 .toasts {
   position: fixed;
-  right: 16px;
+  inset-inline-end: 16px;
   bottom: 16px;
   display: grid;
   gap: 8px;
@@ -764,15 +772,134 @@ details summary {
   border-radius: 6px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-left-width: 4px;
+  border-inline-start-width: 4px;
   box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
 }
 .toast-success {
-  border-left-color: var(--success);
+  border-inline-start-color: var(--success);
 }
 .toast-error {
-  border-left-color: var(--danger);
+  border-inline-start-color: var(--danger);
 }
 .toast-info {
-  border-left-color: var(--accent);
+  border-inline-start-color: var(--accent);
+}
+
+/* ---------- QA Seed Data ---------- */
+code,
+pre {
+  font-family: var(--mono);
+  font-size: 13px;
+}
+pre {
+  margin: 6px 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  text-align: left;
+}
+details.card > summary {
+  font-size: 15px;
+  color: var(--text);
+}
+.guide-body {
+  margin-top: 12px;
+}
+.guide-body ul {
+  margin: 4px 0;
+  padding-inline-start: 20px;
+}
+.principle {
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  border-inline-start: 3px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 6px;
+}
+.guide-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+}
+.examples {
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  text-align: left;
+}
+.table-scroll {
+  overflow-x: auto;
+}
+.plain {
+  border-collapse: collapse;
+  min-width: 420px;
+}
+.plain th,
+.plain td {
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  text-align: start;
+  font-weight: 400;
+}
+.plain thead th {
+  background: var(--surface-2);
+  font-weight: 600;
+}
+.check-item {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.check-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+.state-ok .check-icon {
+  background: var(--success-soft);
+  color: var(--success);
+}
+.state-fail .check-icon {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.state-fail {
+  color: var(--danger);
+}
+.state-review .check-icon {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.findings,
+.validation details {
+  margin-top: 10px;
+}
+.zephyr {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+.zephyr pre {
+  justify-self: stretch;
+}
+.export h4:first-of-type {
+  margin-top: 0;
+}
+.more-formats {
+  margin-top: 12px;
+}
+.more-formats .export-grid {
+  margin-top: 8px;
+}
+.advanced .two-col {
+  margin-top: 12px;
 }

@@ -14,10 +14,10 @@ interface Status {
 }
 
 const PROVIDERS: { id: ProviderId; label: string; detail: string }[] = [
-  { id: 'basic', label: 'Basic (offline, no AI)', detail: 'Turns each line, bullet or “Column: value” block of the input into a row. It doesn’t interpret the text, so most cells need manual work.' },
-  { id: 'claude-code', label: 'Claude Code (this computer’s login)', detail: 'Recommended. Uses the Claude Code CLI you are logged into, so usage counts against that account. No API key needed.' },
-  { id: 'anthropic', label: 'Claude (Anthropic API)', detail: 'Needs an Anthropic API key (paid usage).' },
-  { id: 'ollama', label: 'Local model (Ollama)', detail: 'Free and fully offline. Quality depends on the model you run.' },
+  { id: 'basic', label: 'ساده (آفلاین، بدون AI)', detail: 'هر خط یا بلوک «Column: value» ورودی را به یک ردیف تبدیل می‌کند. متن را تحلیل نمی‌کند، پس بیشتر سلول‌ها را باید دستی پر کنید.' },
+  { id: 'claude-code', label: 'Claude Code (حساب همین سیستم)', detail: 'پیشنهادی. از Claude Code که در این سیستم وارد آن شده‌اید استفاده می‌کند و مصرف از همان حساب کم می‌شود. کلید API لازم نیست.' },
+  { id: 'anthropic', label: 'Claude (Anthropic API)', detail: 'به کلید API از Anthropic نیاز دارد (هزینه‌دار).' },
+  { id: 'ollama', label: 'مدل محلی (Ollama)', detail: 'رایگان و کاملاً آفلاین. کیفیت به مدلی که اجرا می‌کنید بستگی دارد.' },
 ];
 
 export function SettingsDialog({ settings, onSave, onClose }: Props) {
@@ -48,9 +48,9 @@ export function SettingsDialog({ settings, onSave, onClose }: Props) {
   return (
     <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="dialog wide" role="dialog" aria-modal="true" aria-labelledby="settings-title" onKeyDown={(e) => e.key === 'Escape' && onClose()}>
-        <h2 id="settings-title">Settings</h2>
+        <h2 id="settings-title">تنظیمات</h2>
         <fieldset className="providers">
-          <legend>How should tables be generated?</legend>
+          <legend>Seed Data با چه روشی ساخته شود؟</legend>
           {PROVIDERS.map((p) => (
             <label key={p.id} className={`provider ${draft.provider === p.id ? 'selected' : ''}`}>
               <input type="radio" name="provider" checked={draft.provider === p.id} onChange={() => set('provider', p.id)} />
@@ -66,31 +66,31 @@ export function SettingsDialog({ settings, onSave, onClose }: Props) {
           <div className="stack">
             <label className="field">
               <span>
-                Model <small>optional, e.g. opus or sonnet; leave empty for Claude Code’s default</small>
+                مدل <small>اختیاری، مثلاً opus یا sonnet؛ خالی = مدل پیش‌فرض Claude Code</small>
               </span>
-              <input className="mono" value={draft.claudeCodeModel} placeholder="Claude Code default" onChange={(e) => set('claudeCodeModel', e.target.value.trim())} />
+              <input className="mono" value={draft.claudeCodeModel} placeholder="پیش‌فرض Claude Code" dir="ltr" onChange={(e) => set('claudeCodeModel', e.target.value.trim())} />
             </label>
             <StatusLine
               checking={checking}
               ok={status?.claudeCode?.installed}
-              okText={`Claude Code found${status?.claudeCode?.version ? ` (${status.claudeCode.version})` : ''}.`}
-              badText="Claude Code was not found on this computer."
+              okText={`Claude Code پیدا شد${status?.claudeCode?.version ? ` (${status.claudeCode.version})` : ''}.`}
+              badText="Claude Code روی این سیستم پیدا نشد."
             />
             <button type="button" className="btn btn-sm" onClick={check} disabled={checking}>
-              Test connection
+              بررسی اتصال
             </button>
             <div className="howto">
-              <b>Set up once:</b>
+              <b>راه‌اندازی (یک بار):</b>
               <ol>
                 <li>
-                  Install Claude Code and run <span className="mono">claude</span> once in a terminal to log in.
+                  Claude Code را نصب کنید و یک بار دستور <span className="mono">claude</span> را در ترمینال اجرا کنید تا وارد حساب شوید.
                 </li>
                 <li>
-                  If <span className="mono">claude</span> is not on your PATH, set <span className="mono">CLAUDE_CODE_PATH=…</span> in <span className="mono">.env.local</span> and restart{' '}
-                  <span className="mono">npm run dev</span>.
+                  اگر <span className="mono">claude</span> در PATH نیست، مقدار <span className="mono">CLAUDE_CODE_PATH</span> را در <span className="mono">.env.local</span> تنظیم کنید و{' '}
+                  <span className="mono">npm run dev</span> را دوباره اجرا کنید.
                 </li>
               </ol>
-              <p className="hint">The local dev server runs Claude Code with all tools turned off; only the standard, columns and input of the current generation are sent.</p>
+              <p className="hint">سرور محلی Claude Code را با ابزارهای خاموش اجرا می‌کند و فقط استاندارد، ستون‌ها و ورودی همین درخواست ارسال می‌شود.</p>
             </div>
           </div>
         )}
@@ -98,30 +98,30 @@ export function SettingsDialog({ settings, onSave, onClose }: Props) {
         {draft.provider === 'anthropic' && (
           <div className="stack">
             <label className="field">
-              <span>Model</span>
-              <input className="mono" value={draft.anthropicModel} onChange={(e) => set('anthropicModel', e.target.value)} />
+              <span>مدل</span>
+              <input className="mono" dir="ltr" value={draft.anthropicModel} onChange={(e) => set('anthropicModel', e.target.value)} />
             </label>
             <StatusLine
               checking={checking}
               ok={status?.anthropic?.keyDetected}
-              okText="API key found on the local server."
-              badText="No API key found."
+              okText="کلید API روی سرور محلی پیدا شد."
+              badText="کلید API پیدا نشد."
             />
             <div className="howto">
-              <b>Set up once:</b>
+              <b>راه‌اندازی (یک بار):</b>
               <ol>
                 <li>
-                  Create a key at <span className="mono">console.anthropic.com</span>.
+                  در <span className="mono">console.anthropic.com</span> یک کلید بسازید.
                 </li>
                 <li>
-                  In the project folder, copy <span className="mono">.env.example</span> to <span className="mono">.env.local</span> and set{' '}
-                  <span className="mono">ANTHROPIC_API_KEY=…</span>
+                  در پوشهٔ پروژه، <span className="mono">.env.example</span> را به <span className="mono">.env.local</span> کپی کنید و{' '}
+                  <span className="mono">ANTHROPIC_API_KEY</span> را وارد کنید.
                 </li>
                 <li>
-                  Restart <span className="mono">npm run dev</span>.
+                  <span className="mono">npm run dev</span> را دوباره اجرا کنید.
                 </li>
               </ol>
-              <p className="hint">The key stays on your computer: it is read by the local dev server and never sent to the browser or saved in the app.</p>
+              <p className="hint">کلید فقط روی سیستم شما و در سرور محلی می‌ماند و به مرورگر فرستاده یا در برنامه ذخیره نمی‌شود.</p>
             </div>
           </div>
         )}
@@ -130,12 +130,12 @@ export function SettingsDialog({ settings, onSave, onClose }: Props) {
           <div className="stack">
             <div className="rules-grid">
               <label className="field">
-                <span>Ollama URL</span>
-                <input className="mono" value={draft.ollamaBaseUrl} onChange={(e) => set('ollamaBaseUrl', e.target.value)} />
+                <span>آدرس Ollama</span>
+                <input className="mono" dir="ltr" value={draft.ollamaBaseUrl} onChange={(e) => set('ollamaBaseUrl', e.target.value)} />
               </label>
               <label className="field">
-                <span>Model</span>
-                <input className="mono" value={draft.ollamaModel} onChange={(e) => set('ollamaModel', e.target.value)} list="ollama-models" />
+                <span>مدل</span>
+                <input className="mono" dir="ltr" value={draft.ollamaModel} onChange={(e) => set('ollamaModel', e.target.value)} list="ollama-models" />
                 <datalist id="ollama-models">
                   {status?.ollama?.models.map((m) => <option key={m} value={m} />)}
                 </datalist>
@@ -144,28 +144,28 @@ export function SettingsDialog({ settings, onSave, onClose }: Props) {
             <StatusLine
               checking={checking}
               ok={status?.ollama?.reachable}
-              okText={`Ollama is running${status?.ollama?.models.length ? ` (${status.ollama.models.length} models installed)` : ''}.`}
-              badText="Ollama is not reachable at this URL."
+              okText={`Ollama در حال اجراست${status?.ollama?.models.length ? ` (${status.ollama.models.length} مدل نصب شده)` : ''}.`}
+              badText="Ollama در این آدرس در دسترس نیست."
             />
             <button type="button" className="btn btn-sm" onClick={check} disabled={checking}>
-              Test connection
+              بررسی اتصال
             </button>
             <div className="howto">
-              <b>Set up once:</b> install Ollama from <span className="mono">ollama.com</span>, then run <span className="mono">ollama pull {draft.ollamaModel || 'llama3.1'}</span>.
+              <b>راه‌اندازی (یک بار):</b> Ollama را از <span className="mono">ollama.com</span> نصب کنید و دستور <span className="mono" dir="ltr">ollama pull {draft.ollamaModel || 'llama3.1'}</span> را اجرا کنید.
             </div>
           </div>
         )}
 
         {draft.provider !== 'basic' && (
           <label className="field narrow">
-            <span>Timeout (seconds)</span>
+            <span>زمان انتظار (ثانیه)</span>
             <input type="number" min={10} max={600} value={draft.timeoutSeconds} onChange={(e) => set('timeoutSeconds', Math.min(600, Math.max(10, Number(e.target.value) || 120)))} />
           </label>
         )}
 
         <div className="dialog-actions">
           <button type="button" className="btn" onClick={onClose}>
-            Cancel
+            انصراف
           </button>
           <button
             type="button"
@@ -175,7 +175,7 @@ export function SettingsDialog({ settings, onSave, onClose }: Props) {
               onClose();
             }}
           >
-            Save settings
+            ذخیرهٔ تنظیمات
           </button>
         </div>
       </div>
@@ -184,7 +184,7 @@ export function SettingsDialog({ settings, onSave, onClose }: Props) {
 }
 
 function StatusLine({ checking, ok, okText, badText }: { checking: boolean; ok?: boolean; okText: string; badText: string }) {
-  if (checking) return <p className="status-line">Checking…</p>;
+  if (checking) return <p className="status-line">در حال بررسی…</p>;
   if (ok === undefined) return null;
   return <p className={`status-line ${ok ? 'ok' : 'bad'}`}>{ok ? `✓ ${okText}` : `✗ ${badText}`}</p>;
 }

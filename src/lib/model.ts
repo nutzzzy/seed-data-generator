@@ -68,12 +68,12 @@ export function moveItem<T>(list: T[], from: number, to: number): T[] {
 /** Returns a list of problems that prevent generating with this template. */
 export function templateProblems(template: Template): string[] {
   const problems: string[] = [];
-  if (template.columns.length === 0) problems.push('The table structure has no columns. Add at least one column.');
+  if (template.columns.length === 0) problems.push('ساختار جدول هیچ ستونی ندارد. حداقل یک ستون اضافه کنید.');
   const seen = new Set<string>();
   template.columns.forEach((c, i) => {
     const name = c.name.trim();
-    if (!name) problems.push(`Column ${i + 1} has no name.`);
-    else if (seen.has(name.toLowerCase())) problems.push(`Column name "${name}" is used more than once.`);
+    if (!name) problems.push(`ستون ${i + 1} نام ندارد.`);
+    else if (seen.has(name.toLowerCase())) problems.push(`نام ستون «${name}» بیش از یک بار استفاده شده است.`);
     seen.add(name.toLowerCase());
   });
   return problems;

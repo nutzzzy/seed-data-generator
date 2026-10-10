@@ -114,13 +114,13 @@ function DialogView({ state, close }: { state: DialogState; close: () => void })
         {state.kind === 'text' && (
           <>
             {state.message && <div className="dialog-body">{state.message}</div>}
-            <textarea ref={focusRef} className="mono" readOnly rows={10} value={state.text} aria-label={state.title} />
+            <textarea ref={focusRef} className="mono" dir="ltr" readOnly rows={10} value={state.text} aria-label={state.title} />
           </>
         )}
         <div className="dialog-actions">
           {state.kind !== 'text' && (
             <button type="button" className="btn" onClick={cancel}>
-              Cancel
+              انصراف
             </button>
           )}
           <button
@@ -130,7 +130,7 @@ function DialogView({ state, close }: { state: DialogState; close: () => void })
             onClick={accept}
             disabled={state.kind === 'prompt' && !value.trim()}
           >
-            {state.kind === 'text' ? 'Close' : (state.confirmLabel ?? 'OK')}
+            {state.kind === 'text' ? 'بستن' : (state.confirmLabel ?? 'تأیید')}
           </button>
         </div>
       </div>
