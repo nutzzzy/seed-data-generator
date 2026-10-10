@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { exampleStandard, exampleTemplate } from '../test/fixtures';
-import { defaultWorkspace, seedDataStandard, seedDataTemplate } from './defaults';
+import { defaultWorkspace, GUIDE_VERSION, seedDataStandard, seedDataTemplate } from './defaults';
 import type { ColumnDef, Workspace } from './types';
 import { loadWorkspace, saveWorkspace, STORAGE_KEY } from './storage';
 
@@ -44,16 +44,37 @@ describe('built-in presets', () => {
     ws.standardDraft = structuredClone(exampleStandard);
     ws.templateDraft = structuredClone(ws.templates[0]);
     delete ws.presets;
+    delete ws.guideVersion;
     return ws;
   };
 
-  it('adds the QA Seed Data preset to an older workspace without touching the current drafts', () => {
+  it('adds the QA Seed Data preset to an older workspace and makes the guide active again', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(oldWorkspace()));
     const { workspace } = loadWorkspace(localStorage);
     expect(workspace.standards.map((s) => s.id)).toEqual([exampleStandard.id, seedDataStandard.id]);
     expect(workspace.templates.map((t) => t.id)).toEqual([exampleTemplate.id, seedDataTemplate.id]);
-    expect(workspace.standardDraft.id).toBe(exampleStandard.id);
+    expect(workspace.standardDraft).toEqual(seedDataStandard);
+    expect(workspace.templateDraft).toEqual(seedDataTemplate);
+    expect(workspace.guideVersion).toBe(GUIDE_VERSION);
     expect(workspace.templates[0].columns.every((c) => c.forbidden === '')).toBe(true);
+  });
+
+  it('updates the preset content of a workspace saved with an older guide, keeping the user\'s own items', () => {
+    const ws = oldWorkspace();
+    ws.presets = [seedDataStandard.id, seedDataTemplate.id];
+    ws.standards!.push({ ...structuredClone(seedDataStandard), rules: 'old rules' });
+    ws.templates!.push({ ...structuredClone(seedDataTemplate), columns: seedDataTemplate.columns.slice(0, 2) });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(ws));
+    const { workspace } = loadWorkspace(localStorage);
+    expect(workspace.standards).toEqual([exampleStandard, seedDataStandard]);
+    expect(workspace.templates[1]).toEqual(seedDataTemplate);
+    expect(workspace.templateDraft.id).toBe(seedDataTemplate.id);
+  });
+
+  it('keeps the user\'s choice of structure once the workspace has the current guide', () => {
+    const ws = { ...oldWorkspace(), presets: [seedDataStandard.id, seedDataTemplate.id], guideVersion: GUIDE_VERSION };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(ws));
+    expect(loadWorkspace(localStorage).workspace.templateDraft.id).toBe(exampleTemplate.id);
   });
 
   it('does not bring back a preset the user deleted', () => {

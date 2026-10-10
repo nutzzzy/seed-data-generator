@@ -24,8 +24,9 @@
   color-scheme: light dark;
 }
 
+/* Dark colors: used when the user picks dark, or picks system and the system is dark. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --bg: #12151b;
     --surface: #1a1e26;
     --surface-2: #222731;
@@ -44,7 +45,32 @@
     --success: #5fd08a;
     --success-soft: #173323;
     --shadow: none;
+    color-scheme: dark;
   }
+}
+:root[data-theme='dark'] {
+  --bg: #12151b;
+  --surface: #1a1e26;
+  --surface-2: #222731;
+  --border: #2e3440;
+  --border-strong: #3d4554;
+  --text: #e6e9ef;
+  --muted: #9aa3b2;
+  --accent: #6d93ff;
+  --accent-hover: #8aa8ff;
+  --accent-soft: #24304d;
+  --on-accent: #0d1220;
+  --danger: #ff7b72;
+  --danger-soft: #3a1d1d;
+  --warning: #e8b45a;
+  --warning-soft: #3a2e17;
+  --success: #5fd08a;
+  --success-soft: #173323;
+  --shadow: none;
+  color-scheme: dark;
+}
+:root[data-theme='light'] {
+  color-scheme: light;
 }
 
 * {
@@ -902,4 +928,39 @@ details.card > summary {
 }
 .advanced .two-col {
   margin-top: 12px;
+}
+
+/* ---------- Theme switch ---------- */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.theme-switch {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.theme-switch button {
+  border: none;
+  background: transparent;
+  padding: 4px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--muted);
+}
+.theme-switch button + button {
+  border-inline-start: 1px solid var(--border-strong);
+}
+.theme-switch button:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.theme-switch button[aria-pressed='true'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
 }

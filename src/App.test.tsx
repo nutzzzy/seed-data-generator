@@ -8,6 +8,7 @@ import { defaultWorkspace, seedDataTemplate } from './lib/defaults';
 import type { AiTransport } from './lib/generate';
 import { STORAGE_KEY } from './lib/storage';
 import type { Workspace } from './lib/types';
+import { exampleStandard, exampleTemplate } from './test/fixtures';
 
 function renderApp(transport: AiTransport = aiReturning()) {
   const user = userEvent.setup();
@@ -76,6 +77,45 @@ describe('workspace', () => {
     await openAdvanced(user);
     expect(screen.getByLabelText('نام استاندارد')).toHaveValue('QA Seed Data (Confluence)');
     expect(templateNames()).toEqual(COLUMNS);
+  });
+
+  it('does not generate with a structure that does not follow the Seed Data guide', async () => {
+    const ws = defaultWorkspace();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...ws, standardDraft: exampleStandard, templateDraft: exampleTemplate, standards: [...ws.standards, exampleStandard], templates: [...ws.templates, exampleTemplate] }));
+    const transport = aiReturning();
+    const { user } = renderApp(transport);
+    expect(screen.getByText(/طبق راهنمای Seed Data نیست و این ستون‌ها را ندارد: Seed Data ID/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'ساخت Seed Data' }));
+    expect(transport).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'استفاده از ساختار راهنمای QA Seed Data' }));
+    await user.click(screen.getByRole('button', { name: 'ساخت Seed Data' }));
+    await screen.findByText(/2 Seed Data ساخته شد/);
+    expect(headerNames()).toEqual(COLUMNS);
+  });
+});
+
+describe('theme', () => {
+  afterEach(() => delete document.documentElement.dataset.theme);
+
+  it('switches between light, dark and system from the top of the page and remembers the choice', async () => {
+    const { user, unmount } = renderApp();
+    const group = screen.getByRole('group', { name: 'تم' });
+    expect(within(group).getByRole('button', { name: 'خودکار' })).toHaveAttribute('aria-pressed', 'true');
+
+    await user.click(within(group).getByRole('button', { name: '☾ تیره' }));
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(localStorage.getItem('local-table-generator:theme')).toBe('dark');
+
+    unmount();
+    renderApp();
+    expect(within(screen.getByRole('group', { name: 'تم' })).getByRole('button', { name: '☾ تیره' })).toHaveAttribute('aria-pressed', 'true');
+
+    await userEvent.click(screen.getByRole('button', { name: '☀ روشن' }));
+    expect(document.documentElement.dataset.theme).toBe('light');
+    await userEvent.click(screen.getByRole('button', { name: 'خودکار' }));
+    expect(document.documentElement.dataset.theme).toBeUndefined();
+    expect(localStorage.getItem('local-table-generator:theme')).toBeNull();
   });
 });
 

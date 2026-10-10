@@ -22,6 +22,34 @@ export function seedColumn(columns: ColumnDef[], field: SeedField): ColumnDef | 
   return columns.find((c) => norm(c.name) === norm(SEED_FIELDS[field]));
 }
 
+/** Guide fields that a structure is missing, by name. Empty when the structure follows the guide. */
+export function missingSeedFields(columns: ColumnDef[]): string[] {
+  return (Object.keys(SEED_FIELDS) as SeedField[]).filter((f) => !seedColumn(columns, f)).map((f) => SEED_FIELDS[f]);
+}
+
+const ENVIRONMENTS = ['stage', 'UAT', 'production'];
+
+/**
+ * Deterministic clean-up of generated cells (keyed by column id): Seed Data IDs in the naming convention's form
+ * (uppercase, hyphens) and Environment in the guide's spelling. Values that are Not specified are left alone.
+ */
+export function normalizeSeedCells(columns: ColumnDef[], rows: Record<string, string>[]): Record<string, string>[] {
+  const idCol = seedColumn(columns, 'id');
+  const envCol = seedColumn(columns, 'environment');
+  return rows.map((row) => {
+    const next = { ...row };
+    const id = idCol && next[idCol.id];
+    if (id && !isNotSpecified(id)) {
+      next[idCol.id] = id.trim().toUpperCase().replace(/[\s_]+/g, '-').replace(/-{2,}/g, '-');
+    }
+    const env = envCol && next[envCol.id];
+    if (env && !isNotSpecified(env)) {
+      next[envCol.id] = ENVIRONMENTS.find((e) => norm(e) === norm(env)) ?? env.trim();
+    }
+    return next;
+  });
+}
+
 // --- Checklist (the guide's "before registering Seed Data" list) ---------------------------------------------
 
 export type CheckState = 'ok' | 'fail' | 'review' | 'manual';

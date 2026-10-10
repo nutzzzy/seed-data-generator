@@ -2,6 +2,7 @@ import { generateBasic } from './basicGenerator';
 import { tableFromRows, templateProblems } from './model';
 import { normalizeResponse } from './parseResponse';
 import { buildPrompt } from './prompt';
+import { normalizeSeedCells } from './seedData';
 import type { GeneratedTable, Settings, Standard, Template } from './types';
 
 /** What the local server endpoint receives. Only the current generation's data is sent. */
@@ -66,7 +67,7 @@ export async function generateTable({ standard, template, input, settings, signa
   if (settings.provider === 'basic') {
     const { rows, notes } = generateBasic(input, template.columns);
     if (rows.length === 0) throw new GenerationError('از ورودی هیچ ردیفی ساخته نشد.');
-    return tableFromRows(template.columns, rows, 'basic', notes);
+    return tableFromRows(template.columns, normalizeSeedCells(template.columns, rows), 'basic', notes);
   }
 
   const prompt = buildPrompt(standard, template.columns, input);
@@ -97,7 +98,7 @@ export async function generateTable({ standard, template, input, settings, signa
 
   try {
     const { rows, notes } = normalizeResponse(text, template.columns);
-    return tableFromRows(template.columns, rows, 'ai', notes);
+    return tableFromRows(template.columns, normalizeSeedCells(template.columns, rows), 'ai', notes);
   } catch (err) {
     throw new GenerationError(err instanceof Error ? err.message : 'پاسخ AI قابل استفاده نبود.');
   }

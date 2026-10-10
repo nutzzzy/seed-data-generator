@@ -1,4 +1,4 @@
-import { defaultSettings, defaultWorkspace, presetStandards, presetTemplates } from './defaults';
+import { defaultSettings, defaultWorkspace, GUIDE_VERSION, presetStandards, presetTemplates, seedDataStandard, seedDataTemplate } from './defaults';
 import { blankColumn } from './model';
 import type { ColumnDef, Template, Workspace } from './types';
 
@@ -32,22 +32,34 @@ export function loadWorkspace(storage: Storage | undefined = safeStorage()): Loa
       ...presets.filter((p) => !known.has(p.id) && !list.some((i) => i.id === p.id)).map((p) => structuredClone(p)),
     ];
     const withColumns = (t: Template): Template => ({ ...t, columns: t.columns.map(normalizeColumn) });
-    const standardDraft = parsed.standardDraft ?? fallback.standardDraft;
-    const templateDraft = parsed.templateDraft ?? fallback.templateDraft;
+    // A workspace saved with an older guide gets the current guide's preset content and uses it again, so tables are
+    // never generated with an outdated or unrelated structure (e.g. Given/When/Then) left active from an older version.
+    const outdated = parsed.guideVersion !== GUIDE_VERSION;
+    const refresh = <T extends { id: string }>(list: T[], presets: T[]) =>
+      outdated ? list.map((i) => structuredClone(presets.find((p) => p.id === i.id) ?? i)) : list;
+    const standards = refresh(addPresets(parsed.standards, presetStandards), presetStandards);
+    const templates = refresh(addPresets(parsed.templates, presetTemplates), presetTemplates).map(withColumns);
+    const standardDraft = outdated ? structuredClone(seedDataStandard) : (parsed.standardDraft ?? fallback.standardDraft);
+    const templateDraft = outdated ? structuredClone(seedDataTemplate) : (parsed.templateDraft ?? fallback.templateDraft);
+    if (outdated) {
+      if (!standards.some((i) => i.id === standardDraft.id)) standards.push(structuredClone(standardDraft));
+      if (!templates.some((i) => i.id === templateDraft.id)) templates.push(structuredClone(templateDraft));
+    }
     const table = parsed.table ?? null;
     return {
       workspace: {
         ...fallback,
         ...parsed,
         savedTables: Array.isArray(parsed.savedTables) ? parsed.savedTables : [],
-        standards: addPresets(parsed.standards, presetStandards),
-        templates: addPresets(parsed.templates, presetTemplates).map(withColumns),
+        standards,
+        templates,
         standardDraft,
         templateDraft: withColumns(templateDraft),
         input: typeof parsed.input === 'string' ? parsed.input : '',
         table: table && { ...table, columns: table.columns.map(normalizeColumn) },
         settings: { ...defaultSettings, ...parsed.settings },
         presets: fallback.presets,
+        guideVersion: GUIDE_VERSION,
       },
     };
   } catch {

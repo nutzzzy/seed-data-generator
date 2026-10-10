@@ -112,4 +112,6 @@ export interface Workspace {
   settings: Settings;
   /** Ids of built-in standards/templates already added, so a deleted preset is not added again. */
   presets: string[];
+  /** Version of the built-in QA Seed Data Guide this workspace was last updated to. */
+  guideVersion?: number;
 }

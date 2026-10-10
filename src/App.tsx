@@ -7,12 +7,14 @@ import { SettingsDialog } from './components/SettingsDialog';
 import { StandardEditor } from './components/StandardEditor';
 import { TableEditor } from './components/TableEditor';
 import { TemplateEditor } from './components/TemplateEditor';
+import { ThemeSwitch } from './components/ThemeSwitch';
 import { useToast } from './components/Toasts';
 import { ValidationPanel } from './components/ValidationPanel';
-import { seedDataInput } from './lib/defaults';
+import { seedDataInput, seedDataStandard, seedDataTemplate } from './lib/defaults';
 import { generateTable, GenerationError, type AiTransport } from './lib/generate';
 import { newId, nowIso } from './lib/ids';
 import { blankStandard, blankTemplate, sameContent, templateProblems } from './lib/model';
+import { missingSeedFields } from './lib/seedData';
 import { loadWorkspace, saveWorkspace } from './lib/storage';
 import type { GeneratedTable, Settings, Standard, Template, Workspace } from './lib/types';
 import { validateTable } from './lib/validate';
@@ -132,6 +134,19 @@ export default function App({ transport }: Props) {
 
   // ---- Generation --------------------------------------------------------------------------
   const problems = templateProblems(ws.templateDraft);
+  const missingFields = missingSeedFields(ws.templateDraft.columns);
+
+  /** Makes the built-in QA Seed Data Guide the active standard and table structure again. */
+  const useGuide = () => {
+    update((w) => ({
+      standardDraft: structuredClone(seedDataStandard),
+      templateDraft: structuredClone(seedDataTemplate),
+      standards: w.standards.some((i) => i.id === seedDataStandard.id) ? w.standards : [...w.standards, structuredClone(seedDataStandard)],
+      templates: w.templates.some((i) => i.id === seedDataTemplate.id) ? w.templates : [...w.templates, structuredClone(seedDataTemplate)],
+    }));
+    setGenError(null);
+    notify('success', 'ساختار و استاندارد راهنمای QA Seed Data فعال شد.');
+  };
 
   const generate = async () => {
     setGenError(null);
@@ -141,6 +156,10 @@ export default function App({ transport }: Props) {
     }
     if (problems.length) {
       setGenError(problems.join(' '));
+      return;
+    }
+    if (missingFields.length) {
+      setGenError(`ساختار جدول فعال («${ws.templateDraft.name}») طبق راهنمای Seed Data نیست؛ این ستون‌ها را ندارد: ${missingFields.join('، ')}.`);
       return;
     }
     if (ws.table && ws.table.rows.length > 0) {
@@ -246,10 +265,13 @@ export default function App({ transport }: Props) {
           <h1>تولید Seed Data برای QA</h1>
           <p className="tagline">طبق راهنمای Seed Data تیم QA — آماده برای Confluence و Reference در Zephyr</p>
         </div>
-        <button type="button" className="btn provider-chip" onClick={() => setSettingsOpen(true)} title="انتخاب روش ساخت Seed Data">
-          <span className={`dot ${ws.settings.provider === 'basic' ? 'off' : 'on'}`} aria-hidden="true" />
-          {providerLabel(ws.settings)} · تنظیمات
-        </button>
+        <div className="topbar-actions">
+          <ThemeSwitch />
+          <button type="button" className="btn provider-chip" onClick={() => setSettingsOpen(true)} title="انتخاب روش ساخت Seed Data">
+            <span className={`dot ${ws.settings.provider === 'basic' ? 'off' : 'on'}`} aria-hidden="true" />
+            {providerLabel(ws.settings)} · تنظیمات
+          </button>
+        </div>
       </header>
 
       <main>
@@ -320,7 +342,18 @@ export default function App({ transport }: Props) {
               )}
             </span>
           </div>
-          {genError && (
+          {missingFields.length > 0 && (
+            <div className="error-box" role="alert">
+              <p>
+                ساختار جدول فعال («{ws.templateDraft.name}») طبق راهنمای Seed Data نیست و این ستون‌ها را ندارد: {missingFields.join('، ')}. Seed Data فقط با ساختار
+                راهنما ساخته می‌شود.
+              </p>
+              <button type="button" className="btn btn-sm btn-primary" onClick={useGuide}>
+                استفاده از ساختار راهنمای QA Seed Data
+              </button>
+            </div>
+          )}
+          {genError && !missingFields.length && (
             <p className="error-box" role="alert">
               {genError}
             </p>

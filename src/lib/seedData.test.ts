@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { seedDataStandard, seedDataTemplate } from './defaults';
 import { tableFromRows } from './model';
-import { seedChecklist, toSeedDataHtml, toSeedDataText, toZephyrReference } from './seedData';
+import { missingSeedFields, normalizeSeedCells, seedChecklist, toSeedDataHtml, toSeedDataText, toZephyrReference } from './seedData';
+import { exampleTemplate } from '../test/fixtures';
 import { validateTable } from './validate';
 
 const cols = seedDataTemplate.columns;
@@ -76,5 +77,21 @@ describe('seed data exports', () => {
     expect(toZephyrReference(table)).toBe('Test Data:\nSD-ORDER-PAID-001\nSD-VENDOR-ACTIVE-001');
     const none = tableFromRows(cols, [row({ [id('Seed Data ID')]: 'Not specified' })], 'ai');
     expect(toZephyrReference(none)).toBe('');
+  });
+});
+
+describe('guide structure', () => {
+  it('lists the guide fields a structure is missing', () => {
+    expect(missingSeedFields(cols)).toEqual([]);
+    expect(missingSeedFields(exampleTemplate.columns)).toEqual(['Seed Data ID', 'Name', 'Purpose', 'Environment', 'Data', 'Preconditions', 'How to Create', 'Used For']);
+  });
+
+  it('normalizes Seed Data IDs and Environment names', () => {
+    const [id, , , env] = cols;
+    const [row] = normalizeSeedCells(cols, [{ [id.id]: ' sd-order_pending  001 ', [env.id]: 'uat' }]);
+    expect(row[id.id]).toBe('SD-ORDER-PENDING-001');
+    expect(row[env.id]).toBe('UAT');
+    const [kept] = normalizeSeedCells(cols, [{ [id.id]: 'Not specified', [env.id]: 'Stage' }]);
+    expect(kept).toEqual({ [id.id]: 'Not specified', [env.id]: 'stage' });
   });
 });
