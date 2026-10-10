@@ -25,6 +25,8 @@ export interface ColumnDef {
   pattern: string;
   maxLength: number | null;
   unique: boolean;
+  /** Comma-separated words the value must not contain (case-insensitive), e.g. password, token. */
+  forbidden: string;
 }
 
 export interface Template {
@@ -93,4 +95,6 @@ export interface Workspace {
   input: string;
   table: GeneratedTable | null;
   settings: Settings;
+  /** Ids of built-in standards/templates already added, so a deleted preset is not added again. */
+  presets: string[];
 }

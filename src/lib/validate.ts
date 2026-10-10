@@ -95,8 +95,12 @@ export function validateTable(table: GeneratedTable, template: Template, standar
       }
       if (rule.pattern.trim()) {
         const re = compile(rule.pattern);
-        if (re && !re.test(value)) add('error', `${label}: "${col.name}" does not match the pattern ${rule.pattern}.`, at);
+        if (re && !re.test(value)) {
+          add('error', `${label}: "${col.name}" does not match the pattern ${rule.pattern}${rule.expected.trim() ? ` (expected: ${rule.expected.trim()})` : ''}.`, at);
+        }
       }
+      const found = splitList(rule.forbidden ?? '').filter((w) => norm(value).includes(norm(w)));
+      if (found.length) add('error', `${label}: "${col.name}" must not contain ${found.join(', ')}.`, at);
       if (rule.maxLength && value.length > rule.maxLength) {
         add('error', `${label}: "${col.name}" is ${value.length} characters (max ${rule.maxLength}).`, at);
       }

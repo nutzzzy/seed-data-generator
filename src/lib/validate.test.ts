@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { exampleStandard, exampleTemplate } from './defaults';
+import { exampleStandard, exampleTemplate, seedDataStandard, seedDataTemplate } from './defaults';
 import { blankColumn, tableFromRows } from './model';
 import type { Template } from './types';
 import { validateTable } from './validate';
@@ -36,7 +36,7 @@ describe('validateTable', () => {
     const msgs = r.errors.map((e) => e.message);
     expect(msgs).toContain('Row 1: required "Given" is empty.');
     expect(msgs).toContain('Row 3: "Priority" must be one of High, Medium, Low (found "Urgent").');
-    expect(msgs).toContain('Row 4: "ID" does not match the pattern ^AC-\\d+$.');
+    expect(msgs).toContain('Row 4: "ID" does not match the pattern ^AC-\\d+$ (expected: AC-1, AC-2, … in order).');
     expect(msgs).toContain('Row 5: "Scenario" is 81 characters (max 80).');
     expect(msgs).toContain('Row 2: "ID" value "AC-1" is already used in row 1.');
     expect(r.warnings.map((w) => w.message)).toContain('Row 2: "When" is marked Not specified — needs review.');
@@ -83,5 +83,42 @@ describe('validateTable', () => {
     const r = validateTable(tableFromRows(custom.columns, [{ m: 'PUT', p: '/x' }], 'manual'), custom, exampleStandard);
     expect(r.errors.map((e) => e.message)).toEqual(['Row 1: "Method" must be one of GET, POST (found "PUT").']);
     expect(r.warnings.map((w) => w.message)).toContain('The pattern for "Path" is not a valid regular expression, so it was not checked.');
+  });
+});
+
+describe('QA Seed Data template', () => {
+  const sd = seedDataTemplate;
+  const byName = (name: string) => sd.columns.find((c) => c.name === name)!.id;
+  const row = (patch: Record<string, string> = {}) => ({
+    [byName('Seed Data ID')]: 'SD-ORDER-PENDING-001',
+    [byName('Name')]: 'Pending Order - Active Vendor',
+    [byName('Purpose')]: 'Order acceptance tests',
+    [byName('Environment')]: 'UAT',
+    [byName('Data')]: 'Vendor ID: 100977\nOrder ID: Dynamic\nOrder Status: Pending',
+    [byName('Preconditions')]: 'Vendor must be Active.',
+    [byName('How to Create')]: '1. Create an order.',
+    [byName('Used For')]: 'Vendor can accept pending order',
+    ...patch,
+  });
+
+  it('accepts rows that follow the guide, including IDs without a description part', () => {
+    const r = validateTable(tableFromRows(sd.columns, [row(), row({ [byName('Seed Data ID')]: 'SD-ORDER-001' })], 'ai'), sd, seedDataStandard);
+    expect(r.errors).toEqual([]);
+  });
+
+  it('flags naming convention, environment, missing status, sensitive data and duplicate IDs', () => {
+    const rows = [
+      row({ [byName('Seed Data ID')]: 'sd-order-1' }),
+      row({ [byName('Environment')]: 'dev' }),
+      row({ [byName('Seed Data ID')]: 'SD-VENDOR-001', [byName('Data')]: 'Vendor ID: 100977' }),
+      row({ [byName('Seed Data ID')]: 'SD-USER-001', [byName('How to Create')]: 'Login with password 1234' }),
+      row({ [byName('Name')]: 'Same ID as row 2' }),
+    ];
+    const msgs = validateTable(tableFromRows(sd.columns, rows, 'ai'), sd, seedDataStandard).errors.map((e) => e.message);
+    expect(msgs).toContain('Row 1: "Seed Data ID" does not match the pattern ^SD-[A-Z0-9]+(-[A-Z0-9]+)*-\\d{3}$ (expected: SD-[ENTITY]-[DESCRIPTION]-[NUMBER], e.g. SD-ORDER-PENDING-001).');
+    expect(msgs).toContain('Row 2: "Environment" must be one of stage, UAT, production (found "dev").');
+    expect(msgs.some((m) => m.startsWith('Row 3: "Data" does not match the pattern'))).toBe(true);
+    expect(msgs).toContain('Row 4: "How to Create" must not contain password.');
+    expect(msgs).toContain('Row 5: "Seed Data ID" value "SD-ORDER-PENDING-001" is already used in row 2.');
   });
 });

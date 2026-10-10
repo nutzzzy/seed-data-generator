@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { DialogProvider } from './components/Dialogs';
 import { ToastProvider } from './components/Toasts';
-import { defaultWorkspace, exampleTemplate } from './lib/defaults';
+import { defaultWorkspace, exampleInput, exampleStandard, exampleTemplate, seedDataTemplate } from './lib/defaults';
 import type { AiTransport } from './lib/generate';
 import { STORAGE_KEY } from './lib/storage';
 import type { Workspace } from './lib/types';
@@ -23,21 +23,60 @@ function renderApp(transport?: AiTransport) {
 
 const stored = (): Workspace => JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
 const waitForSave = (check: (w: Workspace) => boolean) => waitFor(() => expect(check(stored())).toBe(true));
-const useAi = () => {
-  const ws = defaultWorkspace();
-  ws.settings.provider = 'anthropic';
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(ws));
-};
+/** Most UI tests use the acceptance-criteria example as the only standard and template. */
+const exampleWorkspace = (provider: Workspace['settings']['provider'] = 'basic'): Workspace => ({
+  ...defaultWorkspace(),
+  standards: [structuredClone(exampleStandard)],
+  templates: [structuredClone(exampleTemplate)],
+  standardDraft: structuredClone(exampleStandard),
+  templateDraft: structuredClone(exampleTemplate),
+  input: exampleInput,
+  settings: { ...defaultWorkspace().settings, provider },
+});
+const useAi = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(exampleWorkspace('anthropic')));
 const dialog = () => screen.getByRole('dialog');
 const headerNames = () => screen.getAllByRole('textbox', { name: /^Column \d+ header$/ }).map((i) => (i as HTMLInputElement).value);
 const templateNames = () => screen.getAllByRole('textbox', { name: /^Column \d+ name$/ }).map((i) => (i as HTMLInputElement).value);
 
-beforeEach(() => {
-  const ws = defaultWorkspace();
-  ws.settings.provider = 'basic';
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(ws));
-});
+beforeEach(() => localStorage.setItem(STORAGE_KEY, JSON.stringify(exampleWorkspace())));
 afterEach(() => vi.restoreAllMocks());
+
+describe('QA Seed Data preset', () => {
+  it('starts with the seed data standard, template and example, and generates with exactly its columns', async () => {
+    localStorage.clear();
+    const names = seedDataTemplate.columns.map((c) => c.name);
+    const transport = vi.fn<AiTransport>().mockResolvedValue(
+      JSON.stringify({
+        rows: [
+          {
+            'Seed Data ID': 'SD-VENDOR-ACTIVE-001',
+            Name: 'Active Vendor',
+            Purpose: 'Vendor tests',
+            Environment: 'UAT',
+            Data: 'Vendor ID: 100977\nStatus: Active',
+            Preconditions: 'Vendor must be Active.',
+            'How to Create': 'Not specified',
+            'Used For': 'Vendor Login',
+          },
+        ],
+        issues: [{ row: 0, column: '', message: 'Customer ID 1258 is simple data: keep it in Zephyr.' }],
+      }),
+    );
+    const { user } = renderApp(transport);
+    expect(screen.getByLabelText('Standard name')).toHaveValue('QA Seed Data (Confluence)');
+    expect(templateNames()).toEqual(names);
+    expect((screen.getByLabelText('Input text') as HTMLTextAreaElement).value).toContain('Food Partner');
+
+    await user.click(screen.getByRole('button', { name: 'Generate table' }));
+    expect(await screen.findByText(/Generated 1 row\b/)).toBeInTheDocument();
+    expect(headerNames()).toEqual(names);
+    const req = transport.mock.calls[0][0];
+    expect(req.provider).toBe('claude-code');
+    expect(req.system + req.user).toContain('SD-[ENTITY]-[DESCRIPTION]-[NUMBER]');
+    expect(screen.getByText('✓ No errors', { exact: false })).toBeInTheDocument();
+    expect(screen.getByText(/keep it in Zephyr/)).toBeInTheDocument();
+  });
+});
 
 describe('standards', () => {
   it('edits, saves and reloads a standard', async () => {

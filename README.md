@@ -26,6 +26,12 @@ Open http://localhost:5173. Your work is saved in this browser's local storage (
 5. **Review and edit** – edit cells, add/delete/move rows and columns, Validate, Save table. Edits never change the saved template unless you click *Update template from table*.
 6. **Copy or export** – Copy for Confluence (rich HTML + plain-text fallback), Copy as HTML, Copy as Confluence wiki markup, Copy as Markdown, Download CSV (UTF-8), Download HTML.
 
+## QA Seed Data guide
+
+The team's QA Seed Data Guide is built in as the default **QA Seed Data (Confluence)** standard and **QA Seed Data table** template (`src/lib/defaults.ts`). Generation follows its structure (Seed Data ID, Name, Purpose, Environment, Data, Preconditions, How to Create, Used For), naming convention `SD-[ENTITY]-[DESCRIPTION]-[NUMBER]` and rules. Validation checks the ID format and uniqueness, Environment (`stage`, `UAT`, `production`), that Data contains a status, and that no passwords, tokens or secrets are recorded. Simple one-test data is not turned into Seed Data; it is flagged as belonging in Zephyr.
+
+The same guide is a Claude Code skill in `.claude/skills/qa-seed-data/SKILL.md`, so Claude Code follows it when you work with seed data in this project. Keep both in sync when the guide changes.
+
 ## Generation providers (Settings)
 
 - **Claude Code (default)** – runs the local `claude` CLI headless (tools and MCP off), so usage counts against the Claude Code account you are logged into. No API key. If `claude` is not on your PATH, set `CLAUDE_CODE_PATH` in `.env.local`.
@@ -52,6 +58,12 @@ Open http://localhost:5173. Your work is saved in this browser's local storage (
 ## راهنمای اجرا روی لوکال
 
 این برنامه کاملاً روی کامپیوتر خودتان اجرا می‌شود. برای ساخت جدول از **Claude Code** همین سیستم استفاده می‌کند؛ یعنی مصرف توکن از همان حسابی کم می‌شود که با آن در Claude Code وارد شده‌اید و به کلید API جداگانه نیازی نیست.
+
+### راهنمای Seed Data تیم QA
+
+راهنمای Seed Data تیم به صورت پیش‌فرض در برنامه وجود دارد: استاندارد **QA Seed Data (Confluence)** و قالب جدول **QA Seed Data table**. جدول تولیدشده ساختار، Naming Convention (`SD-[ENTITY]-[DESCRIPTION]-[NUMBER]`) و قوانین راهنما را رعایت می‌کند و دکمهٔ **Validate** موارد زیر را خودکار بررسی می‌کند: قالب و یکتا بودن ID، مقدار Environment، وجود Status در Data و ثبت نشدن اطلاعات حساس. اگر از قبل با برنامه کار کرده‌اید، این استاندارد و قالب را از فهرست‌های بالای بخش ۱ و ۲ انتخاب کنید.
+
+همین راهنما به صورت اسکیل Claude Code در مسیر `.claude/skills/qa-seed-data/SKILL.md` هم قرار دارد.
 
 ### پیش‌نیازها
 

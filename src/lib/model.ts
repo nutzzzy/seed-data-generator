@@ -25,6 +25,7 @@ export function blankColumn(name = ''): ColumnDef {
     pattern: '',
     maxLength: null,
     unique: false,
+    forbidden: '',
   };
 }
 

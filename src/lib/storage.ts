@@ -1,5 +1,6 @@
-import { defaultSettings, defaultWorkspace } from './defaults';
-import type { Workspace } from './types';
+import { defaultSettings, defaultWorkspace, presetStandards, presetTemplates } from './defaults';
+import { blankColumn } from './model';
+import type { ColumnDef, Template, Workspace } from './types';
 
 export const STORAGE_KEY = 'local-table-generator:workspace:v1';
 
@@ -24,16 +25,29 @@ export function loadWorkspace(storage: Storage | undefined = safeStorage()): Loa
     if (parsed?.version !== 1 || !Array.isArray(parsed.standards) || !Array.isArray(parsed.templates)) {
       throw new Error('Unexpected format');
     }
+    // Workspaces from older versions get new built-in presets once (never again after the user deletes one).
+    const known = new Set(Array.isArray(parsed.presets) ? parsed.presets : []);
+    const addPresets = <T extends { id: string }>(list: T[], presets: T[]) => [
+      ...list,
+      ...presets.filter((p) => !known.has(p.id) && !list.some((i) => i.id === p.id)).map((p) => structuredClone(p)),
+    ];
+    const withColumns = (t: Template): Template => ({ ...t, columns: t.columns.map(normalizeColumn) });
+    const standardDraft = parsed.standardDraft ?? fallback.standardDraft;
+    const templateDraft = parsed.templateDraft ?? fallback.templateDraft;
+    const table = parsed.table ?? null;
     return {
       workspace: {
         ...fallback,
         ...parsed,
         savedTables: Array.isArray(parsed.savedTables) ? parsed.savedTables : [],
-        standardDraft: parsed.standardDraft ?? fallback.standardDraft,
-        templateDraft: parsed.templateDraft ?? fallback.templateDraft,
+        standards: addPresets(parsed.standards, presetStandards),
+        templates: addPresets(parsed.templates, presetTemplates).map(withColumns),
+        standardDraft,
+        templateDraft: withColumns(templateDraft),
         input: typeof parsed.input === 'string' ? parsed.input : '',
-        table: parsed.table ?? null,
+        table: table && { ...table, columns: table.columns.map(normalizeColumn) },
         settings: { ...defaultSettings, ...parsed.settings },
+        presets: fallback.presets,
       },
     };
   } catch {
@@ -66,4 +80,9 @@ function safeStorage(): Storage | undefined {
   } catch {
     return undefined;
   }
+}
+
+/** Fills in column fields added by newer versions. */
+function normalizeColumn(c: ColumnDef): ColumnDef {
+  return { ...blankColumn(), ...c };
 }

@@ -81,6 +81,10 @@ export function TemplateEditor({ template, onChange }: Props) {
                       onChange={(e) => update(i, { maxLength: e.target.value ? Math.max(1, Number(e.target.value)) : null })}
                     />
                   </label>
+                  <label className="field">
+                    <span>Must not contain <small>comma separated</small></span>
+                    <input value={col.forbidden ?? ''} placeholder="password, token" onChange={(e) => update(i, { forbidden: e.target.value })} />
+                  </label>
                   <label className="check">
                     <input type="checkbox" checked={col.unique} onChange={(e) => update(i, { unique: e.target.checked })} />
                     Values must be unique
@@ -99,6 +103,6 @@ export function TemplateEditor({ template, onChange }: Props) {
 }
 
 function ruleSummary(c: ColumnDef): string {
-  const n = [c.allowedValues.trim(), c.pattern.trim(), c.maxLength, c.unique].filter(Boolean).length;
+  const n = [c.allowedValues.trim(), c.pattern.trim(), c.maxLength, c.unique, c.forbidden?.trim()].filter(Boolean).length;
   return n ? ` (${n})` : '';
 }

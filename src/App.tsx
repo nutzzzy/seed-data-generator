@@ -8,7 +8,7 @@ import { TableEditor } from './components/TableEditor';
 import { TemplateEditor } from './components/TemplateEditor';
 import { useToast } from './components/Toasts';
 import { ValidationPanel } from './components/ValidationPanel';
-import { exampleInput } from './lib/defaults';
+import { exampleInputFor } from './lib/defaults';
 import { generateTable, GenerationError, type AiTransport } from './lib/generate';
 import { newId, nowIso } from './lib/ids';
 import { blankStandard, blankTemplate, sameContent, templateProblems } from './lib/model';
@@ -300,7 +300,7 @@ export default function App({ transport }: Props) {
                 type="button"
                 className="btn btn-sm"
                 onClick={async () => {
-                  if (!ws.input.trim() || (await confirm({ title: 'Replace input?', message: 'The current input will be replaced with the example text.', confirmLabel: 'Use example' }))) update({ input: exampleInput });
+                  if (!ws.input.trim() || (await confirm({ title: 'Replace input?', message: 'The current input will be replaced with the example text.', confirmLabel: 'Use example' }))) update({ input: exampleInputFor(ws.templateDraft.id) });
                 }}
               >
                 Use example

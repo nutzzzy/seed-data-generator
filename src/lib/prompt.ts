@@ -22,6 +22,7 @@ function columnSpec(c: ColumnDef) {
   if (c.pattern.trim()) spec.regex = c.pattern.trim();
   if (c.maxLength) spec.max_length = c.maxLength;
   if (c.unique) spec.unique = true;
+  if (c.forbidden?.trim()) spec.must_not_contain = c.forbidden.trim();
   return spec;
 }
 
