@@ -6,6 +6,8 @@
   --border-strong: #c3c9d2;
   --text: #1c2330;
   --muted: #5d6675;
+  --brand: #f20072;
+  --brand-2: #4a42fa;
   --accent: #2f5bd3;
   --accent-hover: #2449b0;
   --accent-soft: #e8eefc;
@@ -34,7 +36,9 @@
     --border-strong: #3d4554;
     --text: #e6e9ef;
     --muted: #9aa3b2;
-    --accent: #6d93ff;
+    --brand: #ff3d97;
+    --brand-2: #8b85ff;
+  --accent: #6d93ff;
     --accent-hover: #8aa8ff;
     --accent-soft: #24304d;
     --on-accent: #0d1220;
@@ -56,6 +60,8 @@
   --border-strong: #3d4554;
   --text: #e6e9ef;
   --muted: #9aa3b2;
+  --brand: #ff3d97;
+  --brand-2: #8b85ff;
   --accent: #6d93ff;
   --accent-hover: #8aa8ff;
   --accent-soft: #24304d;
@@ -165,6 +171,108 @@ summary:focus-visible {
   gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 16px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand-logo {
+  flex: none;
+  border-radius: 15px;
+  box-shadow: 0 6px 18px -6px rgb(74 66 250 / 0.45), 0 2px 6px -2px rgb(242 0 114 / 0.35);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.brand-logo .logo-chevrons path,
+.brand-logo .logo-sprout,
+.brand-logo .logo-seed {
+  transform-box: fill-box;
+}
+.brand-logo .logo-sprout {
+  transform-origin: 100% 100%;
+  animation: sprout-grow 0.9s 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.brand-logo .logo-seed {
+  transform-origin: 50% 100%;
+  animation: seed-drop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.brand:hover .brand-logo {
+  transform: rotate(-6deg) scale(1.06);
+}
+.brand:hover .logo-chevrons path {
+  animation: chevron-run 0.9s ease-in-out infinite;
+}
+.brand:hover .logo-chevrons path:nth-child(2) {
+  animation-delay: 0.12s;
+}
+.brand:hover .logo-chevrons path:nth-child(3) {
+  animation-delay: 0.24s;
+}
+.brand:hover .logo-sprout {
+  animation: sprout-sway 1.2s ease-in-out infinite;
+}
+@keyframes chevron-run {
+  50% {
+    transform: translate(2px, -2px);
+  }
+}
+@keyframes sprout-grow {
+  from {
+    transform: scale(0) rotate(30deg);
+  }
+}
+@keyframes sprout-sway {
+  50% {
+    transform: rotate(-12deg);
+  }
+}
+@keyframes seed-drop {
+  from {
+    transform: translateY(-14px) scale(0.6);
+    opacity: 0;
+  }
+}
+.wordmark {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+}
+.wordmark-text {
+  padding: 0.05em 0.02em 0.12em;
+  background: linear-gradient(100deg, var(--brand-2) 0%, var(--brand-2) 38%, var(--brand) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.wordmark-seed {
+  font-style: italic;
+}
+.wordmark-bang {
+  display: inline-block;
+  margin-left: -0.12em;
+  color: var(--brand);
+  transform: skewX(-14deg);
+  transform-origin: bottom;
+}
+.brand:hover .wordmark-bang {
+  animation: bang-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes bang-pop {
+  40% {
+    transform: skewX(-14deg) translateY(-5px) scale(1.15);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-logo,
+  .brand-logo *,
+  .wordmark-bang {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 .tagline {
   margin: 2px 0 0;

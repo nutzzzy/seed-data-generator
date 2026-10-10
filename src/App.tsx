@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDialogs } from './components/Dialogs';
+import { BrandLogo } from './components/BrandLogo';
 import { ExportPanel } from './components/ExportPanel';
 import { GuidePanel } from './components/GuidePanel';
 import { SavedItemBar } from './components/SavedItemBar';
@@ -261,9 +262,19 @@ export default function App({ transport }: Props) {
   return (
     <div className="app">
       <header className="topbar">
-        <div>
-          <h1>تولید Seed Data برای QA</h1>
-          <p className="tagline">طبق راهنمای Seed Data تیم QA — آماده برای Confluence و Reference در Zephyr</p>
+        <div className="brand">
+          <BrandLogo />
+          <div>
+            <h1 className="wordmark" dir="ltr" aria-label="snapp seed!">
+              <span className="wordmark-text" aria-hidden="true">
+                snapp <span className="wordmark-seed">seed</span>
+              </span>
+              <span className="wordmark-bang" aria-hidden="true">
+                !
+              </span>
+            </h1>
+            <p className="tagline">تولید Seed Data برای QA طبق راهنمای تیم — آماده برای Confluence و Reference در Zephyr</p>
+          </div>
         </div>
         <div className="topbar-actions">
           <ThemeSwitch />

@@ -69,7 +69,7 @@ describe('workspace', () => {
   it('starts with the Seed Data guide, the QA Seed Data standard and template, and example notes', async () => {
     localStorage.clear();
     const { user } = renderApp();
-    expect(screen.getByRole('heading', { name: 'تولید Seed Data برای QA' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'snapp seed!' })).toBeInTheDocument();
     expect(screen.getByText('راهنمای Seed Data')).toBeInTheDocument();
     expect(screen.getByText('SD-[ENTITY]-[DESCRIPTION]-[NUMBER]')).toBeInTheDocument();
     expect((screen.getByLabelText('متن ورودی') as HTMLTextAreaElement).value).toContain('Food Partner');
