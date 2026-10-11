@@ -1072,3 +1072,389 @@ details.card > summary {
   color: var(--accent);
   font-weight: 600;
 }
+
+/* ---------- Section switch (Seed Data / snapp usecase) ---------- */
+.mode-switch,
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.mode-switch button,
+.segmented button {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.mode-switch button[aria-pressed='true'],
+.segmented button[aria-pressed='true'],
+.segmented button[aria-selected='true'] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* ---------- snapp usecase ---------- */
+.import-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+}
+.import-grid h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.link-row {
+  display: flex;
+  gap: 8px;
+}
+.link-row input {
+  flex: 1;
+  min-width: 0;
+}
+.uc-header {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+}
+.field.grow {
+  flex: 1;
+}
+.extensions {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+.extensions legend {
+  font-weight: 500;
+  font-size: 13px;
+  padding: 0 4px;
+}
+.extension {
+  display: grid;
+  gap: 6px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--border);
+}
+.extension .row-between {
+  align-items: flex-end;
+}
+.flowchart,
+.section-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+.flowchart > summary,
+.section-card > summary {
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.diagram-editor {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+.diagram-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+}
+@media (max-width: 1100px) {
+  .diagram-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.code-area {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre;
+  overflow-x: auto;
+  min-height: 280px;
+}
+.mermaid-preview {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #ffffff;
+  min-height: 280px;
+  max-height: 560px;
+  overflow: auto;
+  padding: 8px;
+  direction: ltr;
+}
+.mermaid-preview svg {
+  max-width: none;
+  height: auto;
+}
+.mermaid-preview.empty {
+  display: grid;
+  place-items: center;
+  color: #5d6675;
+}
+.mermaid-preview.error {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.mermaid-preview.error pre {
+  white-space: pre-wrap;
+  font-size: 12px;
+  margin: 6px 0 0;
+}
+.image-name {
+  flex: 1 1 260px;
+}
+.row-between .btn-group {
+  align-self: flex-end;
+}
+.publish {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+h4.row-between select {
+  font-weight: 400;
+  max-width: 60%;
+}
+.diagram-grid > .field {
+  align-content: start;
+}
+.flowchart > summary::before,
+.section-card > summary::before {
+  content: '▸';
+  color: var(--muted);
+}
+.flowchart[open] > summary::before,
+.section-card[open] > summary::before {
+  content: '▾';
+}
+
+/* ---------- snapp usecase!: home, document, export ---------- */
+.bare-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+.brand.bare-btn {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.segmented {
+  flex-wrap: wrap;
+  align-self: start;
+  justify-self: start;
+  width: fit-content;
+  max-width: 100%;
+}
+.segmented button {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 14px;
+}
+.start {
+  display: grid;
+  gap: 14px;
+}
+.start h2,
+.card > h2 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+.choice-grid,
+.export-actions {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+}
+.busy-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--muted);
+}
+.doc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.doc-list li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.doc-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.doc-open:hover {
+  border-color: var(--accent);
+}
+.doc-open strong {
+  flex: 1;
+  min-width: 0;
+}
+.doc-kind {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.doc-bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.doc-title {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+}
+.doc-title strong {
+  font-size: 16px;
+}
+.tabs {
+  margin-bottom: 12px;
+}
+.next-step {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+.draw-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.diagram-head {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+}
+.diagram-settings summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+}
+.overview {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .overview {
+    grid-template-columns: 1fr;
+  }
+}
+.section-nav {
+  display: grid;
+  gap: 8px;
+  position: sticky;
+  top: 80px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+}
+.section-nav ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.section-nav li button {
+  width: 100%;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.section-nav li button:hover {
+  background: var(--surface-2);
+}
+.section-nav li button[aria-current='true'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+.issues-line.ok {
+  margin: 0 0 8px;
+  color: var(--success);
+  font-size: 13px;
+}
+.issues-box {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.issues-box > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.issues-box.bad > summary {
+  color: var(--danger);
+}
+.issues-box.warn > summary {
+  color: var(--warning);
+}
+.issues-box .issues {
+  margin-top: 6px;
+}
+.export-dialog h2 {
+  margin: 0;
+}
+
+.nav-title {
+  margin: 0;
+  font-size: 14px;
+}

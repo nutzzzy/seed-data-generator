@@ -31,6 +31,23 @@ The team's QA Seed Data Guide is built in as the default **QA Seed Data (Conflue
 
 The same guide is a Claude Code skill in `.claude/skills/qa-seed-data/SKILL.md`, so Claude Code follows it when you work with seed data in this project. Keep both in sync when the guide changes.
 
+## snapp usecase (separate section)
+
+Switch with **snapp usecase** in the header (or open `http://localhost:5173/#usecase`). It is fully separate from Seed Data: its own storage, its own rules (`src/usecase/rules.ts`) and its own Claude Code skill (`.claude/skills/snapp-usecase/SKILL.md`), both taken from the Confluence page [Partner Use Cases by Domain](https://confluence.snappfood.ir/spaces/FP/pages/154408734/Partner+Use+Cases+by+Domain) and the Use Case pages under it.
+
+1. **Import or create** – import a Confluence page by link (needs a token, see below) or by copy/paste (open the page, Ctrl+A, Ctrl+C, paste); both kinds of pages are recognised: a Use Case page (`Use Case ID`, Preconditions … Related Use Cases) and the diagram page (numbered `N. Domain — Service` sections with Description, Mermaid Diagram Source, Rendered Diagram). Or generate a Use Case and its flowchart from requirements with AI, or start empty.
+2. **Edit the algorithm and the flowchart** – Use Case fields in the page order (lists as an outline: one item per line, two spaces per level, `### ` sub-heading, ` \` line break); Mermaid source with a live preview; *draw from the algorithm* (offline draft) or *draw / fix with AI*. The rules are checked live (UC ID format, sections, quoted Mermaid labels, `flowchart TD/LR`, `[[…]]` for other domains, em-dash headings, current domain names…).
+3. **Export for Confluence** – rich copy to paste in the editor, storage format (the pages' exact markup, incl. `ac:image` attachments), wiki markup, Markdown, PNG/SVG of each diagram named like the page attachments. Documents imported by link can be **published** back to the same page: the update is refused if the page changed since the import, the page intro is kept, and only diagrams whose source changed get a new PNG.
+
+Link import and publishing need a Confluence Personal Access Token (Confluence → Profile → Personal Access Tokens) in `.env.local`:
+
+```bash
+CONFLUENCE_BASE_URL=https://confluence.snappfood.ir
+CONFLUENCE_TOKEN=<your token>
+```
+
+The token stays in the local dev server and is only sent to `CONFLUENCE_BASE_URL`.
+
 ## Generation providers (Settings)
 
 - **Claude Code (default)** – runs the local `claude` CLI headless (tools and MCP off), so usage counts against the Claude Code account you are logged into. No API key. If `claude` is not on your PATH, set `CLAUDE_CODE_PATH` in `.env.local`.
@@ -46,9 +63,10 @@ The same guide is a Claude Code skill in `.claude/skills/qa-seed-data/SKILL.md`,
 
 ## Code layout
 
+- `src/seed/` – the Seed Data section; `src/usecase/` – the snapp usecase section (logic, components, tests); `src/App.tsx` – the switch between them
 - `src/lib/` – framework-free logic: types, model helpers, prompt, response normalizer, offline generator, validator, exporters, storage, clipboard
-- `src/components/` – UI pieces; `src/App.tsx` wires the workflow
-- `server/` – Vite plugin exposing `/api/ai/status` and `/api/ai/generate` (Claude Code, Anthropic API, Ollama); replace or add providers here
+- `src/components/` – shared UI pieces
+- `server/` – Vite plugins exposing `/api/ai/status` and `/api/ai/generate` (Claude Code, Anthropic API, Ollama) and `/api/confluence/*` (page import and publish)
 
 ---
 
@@ -71,6 +89,16 @@ The same guide is a Claude Code skill in `.claude/skills/qa-seed-data/SKILL.md`,
 استاندارد و ساختار جدول در «تنظیمات پیشرفته» پایین صفحه قرار دارند و فقط وقتی راهنمای تیم تغییر کرد لازم است آن‌ها را عوض کنید. اگر از قبل با برنامه کار کرده‌اید، **QA Seed Data** را از فهرست‌های همان بخش انتخاب کنید.
 
 همین راهنما به صورت اسکیل Claude Code در مسیر `.claude/skills/qa-seed-data/SKILL.md` هم قرار دارد.
+
+### بخش snapp usecase
+
+بخشی کاملاً جدا از Seed Data (حافظه، قوانین و اسکیل جدا: `.claude/skills/snapp-usecase/SKILL.md`) برای Use Caseها و فلوچارت‌های Food Partner طبق صفحهٔ Confluence «Partner Use Cases by Domain». از دکمهٔ **snapp usecase** در بالای صفحه وارد شوید:
+
+۱. ایمپورت صفحهٔ Use Case یا صفحهٔ نمودارها با لینک (نیاز به `CONFLUENCE_TOKEN` در `.env.local`) یا با کپی/Paste محتوای صفحه؛ یا ساخت Use Case و فلوچارت با AI.
+
+۲. ویرایش الگوریتم (بخش‌های Use Case) و کد Mermaid با پیش‌نمایش زنده و بررسی هم‌زمان قوانین؛ رسم فلوچارت از روی الگوریتم.
+
+۳. خروجی با همان ساختار Confluence (کپی برای Paste، Storage Format، Wiki Markup، Markdown، PNG/SVG) یا انتشار مستقیم در همان صفحه (فقط اگر صفحه بعد از ایمپورت تغییر نکرده باشد).
 
 ### پیش‌نیازها
 

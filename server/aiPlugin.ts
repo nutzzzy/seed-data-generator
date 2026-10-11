@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Connect, Plugin } from 'vite';
+import { isSameOrigin, readBody, send } from './http.ts';
 import { claudeCodeVersion, generateWithAnthropic, generateWithClaudeCode, generateWithOllama, ProviderError } from './providers.ts';
 
 interface Options {
@@ -16,8 +17,6 @@ interface GenerateBody {
   schema?: unknown;
   timeoutMs?: unknown;
 }
-
-const MAX_BODY_BYTES = 2 * 1024 * 1024;
 
 /**
  * Adds a tiny local API to the Vite dev and preview servers:
@@ -71,7 +70,7 @@ async function handleStatus(req: IncomingMessage, res: ServerResponse, options: 
 async function handleGenerate(req: IncomingMessage, res: ServerResponse, options: Options) {
   let body: GenerateBody;
   try {
-    body = JSON.parse(await readBody(req)) as GenerateBody;
+    body = JSON.parse(await readBody(req, 2 * 1024 * 1024)) as GenerateBody;
   } catch (err) {
     return send(res, 400, { error: err instanceof Error ? err.message : 'بدنهٔ درخواست نامعتبر است.' });
   }
@@ -105,45 +104,8 @@ async function handleGenerate(req: IncomingMessage, res: ServerResponse, options
   }
 }
 
-/** Blocks other websites from driving this local endpoint through the user's browser. */
-function isSameOrigin(req: IncomingMessage): boolean {
-  const origin = req.headers.origin;
-  const site = req.headers['sec-fetch-site'];
-  if (site && site !== 'same-origin' && site !== 'none') return false;
-  if (!origin) return true;
-  try {
-    return new URL(origin).host === req.headers.host;
-  } catch {
-    return false;
-  }
-}
-
 function checkHttpUrl(value: string): string {
   const url = new URL(value);
   if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new ProviderError(400, 'آدرس Ollama باید با http:// یا https:// شروع شود.');
   return url.toString();
-}
-
-function readBody(req: IncomingMessage): Promise<string> {
-  return new Promise((resolve, reject) => {
-    let size = 0;
-    const chunks: Buffer[] = [];
-    req.on('data', (chunk: Buffer) => {
-      size += chunk.length;
-      if (size > MAX_BODY_BYTES) {
-        reject(new Error('درخواست خیلی بزرگ است (حداکثر ۲ مگابایت).'));
-        req.destroy();
-      } else chunks.push(chunk);
-    });
-    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
-    req.on('error', reject);
-  });
-}
-
-function send(res: ServerResponse, status: number, data: unknown) {
-  if (res.headersSent) return;
-  res.statusCode = status;
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-store');
-  res.end(JSON.stringify(data));
 }

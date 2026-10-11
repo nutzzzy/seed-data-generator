@@ -4,6 +4,8 @@ interface ConfirmOptions {
   title: string;
   message: ReactNode;
   confirmLabel?: string;
+  /** Label of the other choice; defaults to «انصراف». */
+  cancelLabel?: string;
   danger?: boolean;
 }
 interface PromptOptions {
@@ -120,7 +122,7 @@ function DialogView({ state, close }: { state: DialogState; close: () => void })
         <div className="dialog-actions">
           {state.kind !== 'text' && (
             <button type="button" className="btn" onClick={cancel}>
-              انصراف
+              {(state.kind === 'confirm' && state.cancelLabel) || 'انصراف'}
             </button>
           )}
           <button
