@@ -5,6 +5,7 @@ import { createAgentRuntime, type AgentRuntime } from './server/agents/runtime.t
 import { agentsPlugin } from './server/agentsPlugin.ts';
 import { aiPlugin } from './server/aiPlugin.ts';
 import { confluencePlugin } from './server/confluencePlugin.ts';
+import { seedWorkflowPlugin } from './server/seedWorkflowPlugin.ts';
 
 // A fixed port keeps the browser origin stable, so locally stored work is found again after a restart.
 const PORT = 5173;
@@ -20,13 +21,15 @@ export default defineConfig(({ mode }) => {
       dataDir: env.SEED_DATA_DIR || undefined,
       secretKey: env.SEED_SECRET_KEY || undefined,
       anthropicApiKey: env.ANTHROPIC_API_KEY || undefined,
+      confluenceEnv: { baseUrl: env.CONFLUENCE_BASE_URL || 'https://confluence.snappfood.ir', token: env.CONFLUENCE_TOKEN || undefined },
     }));
   return {
     plugins: [
       react(),
       aiPlugin({ anthropicApiKey: env.ANTHROPIC_API_KEY || undefined, runtime: getRuntime }),
       agentsPlugin(getRuntime),
-      confluencePlugin({ baseUrl: env.CONFLUENCE_BASE_URL || 'https://confluence.snappfood.ir', token: env.CONFLUENCE_TOKEN || undefined }),
+      confluencePlugin({ store: () => getRuntime().confluence }),
+      seedWorkflowPlugin(() => getRuntime().jobs),
     ],
     server: { port: PORT, strictPort: true },
     preview: { port: PORT, strictPort: true },

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDialogs } from '../components/Dialogs';
 import { BrandLogo } from '../components/BrandLogo';
+import { ConfluenceSettings } from '../components/ConfluenceSettings';
+import { GenerateSeedModal, type ModalApis } from '../components/GenerateSeedModal';
 import { ExportPanel } from '../components/ExportPanel';
 import { GuidePanel } from '../components/GuidePanel';
 import { SavedItemBar } from '../components/SavedItemBar';
@@ -20,25 +22,30 @@ import { loadWorkspace, saveWorkspace } from '../lib/storage';
 import type { GeneratedTable, Standard, Template, Workspace } from '../lib/types';
 import { validateTable } from '../lib/validate';
 import { providerLabel } from '../lib/providerLabel';
+import { confluenceApi, type ConfluenceStatus } from '../lib/seedJobsClient';
 
 interface Props {
   /** Injected in tests; defaults to the local server endpoint. */
   transport?: AiTransport;
   /** Switch between the app's sections (Seed Data / UseCase), shown in the header. */
   modeSwitch?: React.ReactNode;
+  /** Injected in tests: the local agents / Confluence / workflow endpoints. */
+  apis?: ModalApis;
 }
 
 type Named = { id: string; name: string; updatedAt: string };
 
 const count = (n: number, noun: string) => `${n} ${noun}`;
 
-export function SeedDataApp({ transport, modeSwitch }: Props) {
+export function SeedDataApp({ transport, modeSwitch, apis }: Props) {
   const [loaded] = useState(() => loadWorkspace());
   const [ws, setWs] = useState<Workspace>(loaded.workspace);
   const [busy, setBusy] = useState<AbortController | null>(null);
   const [genError, setGenError] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [seedModalOpen, setSeedModalOpen] = useState(false);
+  const [confluenceOpen, setConfluenceOpen] = useState(false);
   const { confirm, prompt } = useDialogs();
   const notify = useToast();
   const tableRef = useRef<HTMLElement>(null);
@@ -145,6 +152,33 @@ export function SeedDataApp({ transport, modeSwitch }: Props) {
     notify('success', 'ساختار و استاندارد راهنمای QA Seed Data فعال شد.');
   };
 
+  /** Checks that apply to every generation; returns false (and shows why) when it cannot start. */
+  const canGenerate = async () => {
+    setGenError(null);
+    if (problems.length) {
+      setGenError(problems.join(' '));
+      return false;
+    }
+    if (missingFields.length) {
+      setGenError(`ساختار جدول فعال («${ws.templateDraft.name}») طبق راهنمای Seed Data نیست؛ این ستون‌ها را ندارد: ${missingFields.join('، ')}.`);
+      return false;
+    }
+    if (ws.table && ws.table.rows.length > 0) {
+      return confirm({
+        title: 'Seed Dataهای فعلی جایگزین شوند؟',
+        message: 'جدول فعلی با نتیجهٔ جدید جایگزین می‌شود. اگر می‌خواهید نگهش دارید، اول «ذخیره» را بزنید. اگر ساخت ناموفق باشد، جدول فعلی دست نمی‌خورد.',
+        confirmLabel: 'ساخت دوباره',
+      });
+    }
+    return true;
+  };
+
+  /** Every generation starts in the modal: Confluence link → read docs → duplicate check → generate → preview → publish. */
+  const openGenerateModal = async () => {
+    if (await canGenerate()) setSeedModalOpen(true);
+  };
+
+  /** The generation from before the Confluence workflow: notes in, table out (also works offline). */
   const generate = async () => {
     setGenError(null);
     if (!ws.input.trim()) {
@@ -275,6 +309,9 @@ export function SeedDataApp({ transport, modeSwitch }: Props) {
         <div className="topbar-actions">
           {modeSwitch}
           <ThemeSwitch />
+          <button type="button" className="btn" onClick={() => setConfluenceOpen(true)} title="تنظیمات اتصال Confluence">
+            Confluence
+          </button>
           <button type="button" className="btn provider-chip" onClick={() => setSettingsOpen(true)} title="انتخاب روش ساخت Seed Data">
             <span className={`dot ${ws.settings.provider === 'basic' ? 'off' : 'on'}`} aria-hidden="true" />
             {providerLabel(ws.settings)} · تنظیمات
@@ -321,13 +358,16 @@ export function SeedDataApp({ transport, modeSwitch }: Props) {
           </div>
 
           <div className="generate-bar">
-            <button type="button" className="btn btn-primary btn-lg" onClick={generate} disabled={!!busy}>
+            <button type="button" className="btn btn-primary btn-lg" onClick={openGenerateModal} disabled={!!busy}>
+              ساخت Seed Data
+            </button>
+            <button type="button" className="btn" onClick={generate} disabled={!!busy} title="بدون خواندن Confluence و بدون بررسی تکراری‌ها، فقط از روی یادداشت‌ها">
               {busy ? (
                 <>
                   <span className="spinner" aria-hidden="true" /> در حال ساخت…
                 </>
               ) : (
-                'ساخت Seed Data'
+                'ساخت سریع (بدون Confluence)'
               )}
             </button>
             {busy && (
@@ -464,6 +504,22 @@ export function SeedDataApp({ transport, modeSwitch }: Props) {
         </details>
       </main>
 
+      {seedModalOpen && (
+        <GenerateSeedModal
+          settings={ws.settings}
+          standard={ws.standardDraft}
+          template={ws.templateDraft}
+          initialRequest={ws.input}
+          transport={transport}
+          apis={apis}
+          onGenerated={(table) => {
+            update({ table });
+            setShowValidation(true);
+          }}
+          onClose={() => setSeedModalOpen(false)}
+        />
+      )}
+      {confluenceOpen && <ConfluenceDialog api={apis?.confluence} onClose={() => setConfluenceOpen(false)} />}
       {settingsOpen && (
         <SettingsDialog
           settings={ws.settings}
@@ -525,5 +581,27 @@ function SavedTablesPicker({ tables, onOpen, onDelete }: { tables: Workspace['sa
         ))}
       </ul>
     </details>
+  );
+}
+
+function ConfluenceDialog({ onClose, api = confluenceApi }: { onClose: () => void; api?: typeof confluenceApi }) {
+  const [status, setStatus] = useState<ConfluenceStatus | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    api.status().then(setStatus, (err) => setError(err instanceof Error ? err.message : String(err)));
+  }, [api]);
+  return (
+    <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="dialog wide" role="dialog" aria-modal="true" aria-labelledby="confluence-title" onKeyDown={(e) => e.key === 'Escape' && onClose()}>
+        <h2 id="confluence-title">تنظیمات Confluence</h2>
+        {error && <p className="status-line bad">✗ {error}</p>}
+        {status ? <ConfluenceSettings status={status} onChange={setStatus} api={api} /> : !error && <p className="status-line">در حال خواندن…</p>}
+        <div className="dialog-actions">
+          <button type="button" className="btn" onClick={onClose}>
+            بستن
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

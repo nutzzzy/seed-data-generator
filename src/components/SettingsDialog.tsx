@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { agentsApi, type Agent, type AgentInput, type AgentList, type ConnectionResult, type ProviderInfo } from '../lib/agentsClient';
+import { agentsApi, type Agent, type AgentInput, type AgentList, type AgentTemplate, type ConnectionResult, type ProviderInfo } from '../lib/agentsClient';
 import type { Settings } from '../lib/types';
 import { useDialogs } from './Dialogs';
 
@@ -114,6 +114,7 @@ export function SettingsDialog({ settings, onSave, onClose, api = agentsApi }: P
         <AgentForm
           agent={editing === 'new' ? undefined : editing}
           providers={data.providers}
+          templates={data.templates ?? []}
           api={api}
           onCancel={() => setEditing(null)}
           onSaved={(d, agent) => {
@@ -233,6 +234,7 @@ function Shell({ title, onClose, children }: { title: string; onClose: () => voi
 interface FormProps {
   agent?: Agent;
   providers: ProviderInfo[];
+  templates: AgentTemplate[];
   api: Api;
   onCancel: () => void;
   onSaved: (data: AgentList, agent: Agent) => void;
@@ -241,11 +243,14 @@ interface FormProps {
 const defaultsOf = (p: ProviderInfo | undefined) => Object.fromEntries((p?.fields ?? []).filter((f) => !f.secret).map((f) => [f.key, f.default ?? '']));
 
 /** Add / Edit form, built from the provider's field list so new providers need no UI code. */
-function AgentForm({ agent, providers, api, onCancel, onSaved }: FormProps) {
-  const [providerType, setProviderType] = useState(agent?.providerType ?? providers[0]?.type ?? '');
+function AgentForm({ agent, providers, templates, api, onCancel, onSaved }: FormProps) {
+  const usable = templates.filter((t) => providers.some((p) => p.type === t.providerType));
+  const first = agent ? undefined : usable[0];
+  const [templateId, setTemplateId] = useState(first?.id ?? '');
+  const [providerType, setProviderType] = useState(agent?.providerType ?? first?.providerType ?? providers[0]?.type ?? '');
   const provider = providers.find((p) => p.type === providerType);
-  const [name, setName] = useState(agent?.name ?? provider?.label ?? '');
-  const [values, setValues] = useState<Record<string, string>>(() => ({ ...defaultsOf(provider), ...agent?.settings }));
+  const [name, setName] = useState(agent?.name ?? first?.name ?? provider?.label ?? '');
+  const [values, setValues] = useState<Record<string, string>>(() => ({ ...defaultsOf(provider), ...first?.settings, ...agent?.settings }));
   /** string = new value, null = remove the saved one, missing = keep. */
   const [secrets, setSecrets] = useState<Record<string, string | null>>({});
   const [enabled, setEnabled] = useState(agent?.enabled ?? true);
@@ -253,11 +258,14 @@ function AgentForm({ agent, providers, api, onCancel, onSaved }: FormProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const changeProvider = (type: string) => {
-    const next = providers.find((p) => p.type === type);
-    if (!name.trim() || name === provider?.label) setName(next?.label ?? '');
-    setProviderType(type);
-    setValues(defaultsOf(next));
+  /** Starts the form from a template: its provider, suggested name and settings. A name the user typed is kept. */
+  const applyTemplate = (t: AgentTemplate) => {
+    const next = providers.find((p) => p.type === t.providerType);
+    const current = usable.find((x) => x.id === templateId);
+    if (!name.trim() || name === current?.name || name === provider?.label) setName(t.name || next?.label || '');
+    setTemplateId(t.id);
+    setProviderType(t.providerType);
+    setValues({ ...defaultsOf(next), ...t.settings });
     setSecrets({});
     setTest(null);
   };
@@ -296,17 +304,25 @@ function AgentForm({ agent, providers, api, onCancel, onSaved }: FormProps) {
         <span>نام Agent</span>
         <input aria-label="نام Agent" value={name} maxLength={80} required onChange={(e) => setName(e.target.value)} />
       </label>
-      <label className="field">
-        <span>نوع سرویس</span>
-        <select aria-label="نوع سرویس" value={providerType} disabled={!!agent} onChange={(e) => changeProvider(e.target.value)}>
-          {providers.map((p) => (
-            <option key={p.type} value={p.type}>
-              {p.label}
-            </option>
+      {!agent && usable.length > 0 && (
+        <fieldset className="templates">
+          <legend>قالب</legend>
+          {usable.map((t) => (
+            <label key={t.id} className={`provider template ${templateId === t.id ? 'selected' : ''}`}>
+              <input type="radio" name="template" aria-label={t.label} checked={templateId === t.id} onChange={() => applyTemplate(t)} />
+              <span>
+                <strong>{t.label}</strong>
+                <small>{t.description}</small>
+              </span>
+            </label>
           ))}
-        </select>
+        </fieldset>
+      )}
+      <div className="field">
+        <span>نوع سرویس</span>
+        <strong>{provider?.label ?? providerType}</strong>
         {provider && <small>{provider.description}</small>}
-      </label>
+      </div>
 
       {provider?.fields.map((f) => {
         if (f.secret) {

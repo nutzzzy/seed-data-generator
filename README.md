@@ -39,7 +39,7 @@ Switch with **snapp usecase** in the header (or open `http://localhost:5173/#use
 2. **Edit the algorithm and the flowchart** – Use Case fields in the page order (lists as an outline: one item per line, two spaces per level, `### ` sub-heading, ` \` line break); Mermaid source with a live preview; *draw from the algorithm* (offline draft) or *draw / fix with AI*. The rules are checked live (UC ID format, sections, quoted Mermaid labels, `flowchart TD/LR`, `[[…]]` for other domains, em-dash headings, current domain names…).
 3. **Export for Confluence** – rich copy to paste in the editor, storage format (the pages' exact markup, incl. `ac:image` attachments), wiki markup, Markdown, PNG/SVG of each diagram named like the page attachments. Documents imported by link can be **published** back to the same page: the update is refused if the page changed since the import, the page intro is kept, and only diagrams whose source changed get a new PNG.
 
-Link import and publishing need a Confluence Personal Access Token (Confluence → Profile → Personal Access Tokens) in `.env.local`:
+Link import and publishing need a Confluence Personal Access Token (Confluence → Profile → Personal Access Tokens), saved in the app's **Confluence** settings or in `.env.local`:
 
 ```bash
 CONFLUENCE_BASE_URL=https://confluence.snappfood.ir
@@ -48,13 +48,32 @@ CONFLUENCE_TOKEN=<your token>
 
 The token stays in the local dev server and is only sent to `CONFLUENCE_BASE_URL`.
 
+## Generating from Confluence
+
+**ساخت Seed Data** opens a modal; every generation goes through these steps, in this order:
+
+1. **Context** – the Confluence page link (required, on the configured host), the agent, what Seed Data is needed (prefilled from step 1) and optional instructions. Without a Confluence token, the Confluence settings appear right in the modal.
+2. **Read Confluence** – the linked page and all of its child pages (paginated, retried on rate limits, up to 300 pages / 8 levels) through the REST API. Pages or child lists that cannot be read are listed with the reason; you decide whether to continue.
+3. **Duplicate check** – existing Seed Data in those pages (one entry per `SD-…` id) is ranked by content and compared with the request by the selected agent (purpose, fields and values, entities, states, preconditions, scenario — not the title). Matches are shown with their page links, explanation, matching fields and last update, and you choose: **don't generate**, **generate as new**, or **overwrite** a selected page. Nothing is generated before this step finishes.
+4. **Generate** – the agent gets the project Skill (`.claude/skills/qa-seed-data/SKILL.md`), the request and the documentation, and generates with the active standard and table structure, so output and validation are the same as before. Assumptions and missing information are listed.
+5. **Preview and approval** – the exact page content in a Confluence-like preview (sandboxed), before/after for an update, editing (the approval is withdrawn after every edit), copy (everything, JSON, one section, plus all existing exports) and regenerate. Publishing needs the approval checkbox; an overwrite also asks for confirmation. An overwrite only replaces the sections with the same Seed Data IDs and keeps the rest of the page, unless you choose to replace the whole page.
+6. **Publish** – a new child page under the page you choose, or an update of the chosen page at the previewed version. If someone changed the page in the meantime, nothing is written: the new version is shown and you review and approve again. The result shows the title, link, page id, agent and time.
+
+The generated Seed Data also stays in the page's table, so it can be copied or exported even when you don't publish. **ساخت سریع (بدون Confluence)** is the previous generation from notes only.
+
+### Confluence settings
+
+The **Confluence** button in the header (or the modal) sets the base URL, the login method (Personal Access Token for Data Center, or email + API token for Cloud) and the token, with a connection test. The token is stored encrypted on the local server (`.data/`), shown only masked, and can be replaced or removed. `CONFLUENCE_BASE_URL` / `CONFLUENCE_TOKEN` in `.env.local` still work as a fallback.
+
 ## Agents (Settings)
 
 Settings is the agent manager: add, edit, enable / disable, remove and test AI agents, pick a default agent, and choose which agent this section uses. Each agent has a name, a provider type and that provider's settings (model, Base URL, API key…).
 
 - Agent configs live in `.data/agents.json`, API keys encrypted (AES-256-GCM) in `.data/secrets.json`, both on the local server and readable by your user only (`SEED_DATA_DIR` and `SEED_SECRET_KEY` in `.env.local` change the location and key). Keys are never stored in the browser and never sent back to it: the UI only shows them masked, and you can replace or remove them.
 - The built-in agents **Claude Code**, **Claude (Anthropic API)** and **Ollama** are the providers below. The first time Settings is opened, your earlier model choices are copied into them. Until you save an agent choice, generation keeps using exactly the old request.
-- **OpenAI-compatible service** – OpenAI, Azure OpenAI, OpenRouter, Gemini's OpenAI endpoint, LM Studio, vLLM… (Base URL, model, optional API key, structured-output mode).
+- **Add Agent templates** – Claude Code, **Codex**, **Cursor**, **Gemini CLI**, **Gemini API**, Claude API, Ollama and a custom OpenAI-compatible service. A template fills in the provider, a name and its settings.
+- **Codex / Cursor / Gemini CLI** – run the locally installed CLI headless, like Claude Code: read-only mode (`codex exec --sandbox read-only --ephemeral`, `cursor-agent --mode ask`, `gemini --approval-mode plan`), in an empty temporary folder so no project files are sent. They use the CLI's own login (`codex login`, `cursor-agent login`, `gemini`) or an optional API key, which is passed as an environment variable (`CODEX_API_KEY`, `CURSOR_API_KEY`, `GEMINI_API_KEY`), never on the command line. The executable is looked up on `PATH` and in `~/.local/bin`; set *مسیر فایل اجرایی* when it is elsewhere.
+- **OpenAI-compatible service** – OpenAI, Azure OpenAI, OpenRouter, Gemini's OpenAI endpoint (the Gemini API template), LM Studio, vLLM… (Base URL, model, optional API key, structured-output mode).
 - New provider types are added in `server/agents/registry.ts` (one `ProviderDefinition`: settings fields, `generate`, `testConnection`); the form in Settings is built from those fields.
 
 ## Generation providers
@@ -75,7 +94,7 @@ Settings is the agent manager: add, edit, enable / disable, remove and test AI a
 - `src/seed/` – the Seed Data section; `src/usecase/` – the snapp usecase section (logic, components, tests); `src/App.tsx` – the switch between them
 - `src/lib/` – framework-free logic: types, model helpers, prompt, response normalizer, offline generator, validator, exporters, storage, clipboard
 - `src/components/` – shared UI pieces
-- `server/` – Vite plugins exposing `/api/ai/status` and `/api/ai/generate` (by agent, or the old provider fields), `/api/agents/*` (agent management) and `/api/confluence/*` (page import and publish); `server/agents/` – provider registry and agent service; `secretStore.ts` – encrypted key storage
+- `server/` – Vite plugins exposing `/api/ai/status` and `/api/ai/generate` (by agent, or the old provider fields), `/api/agents/*` (agent management), `/api/confluence/*` (settings, page import and publish) and `/api/seed/*` (the Confluence generation workflow); `server/confluence/` – REST client, credentials, page-tree traversal; `server/seedWorkflow/` – duplicate detection and the workflow jobs; `server/agents/` – provider registry and agent service; `secretStore.ts` – encrypted key storage
 
 ---
 

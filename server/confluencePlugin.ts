@@ -2,27 +2,24 @@ import type { IncomingMessage } from 'node:http';
 import type { Connect, Plugin } from 'vite';
 import { isSameOrigin, readBody, send } from './http.ts';
 
-export interface ConfluenceOptions {
-  /** e.g. https://confluence.snappfood.ir — only pages on this host are read or written. */
-  baseUrl: string;
-  /** Personal Access Token (Confluence → Profile → Personal Access Tokens). Stays on this local server. */
-  token?: string;
-}
+import type { ConfluenceCredentialStore } from './confluence/credentials.ts';
+import { confluenceApi, ConfluenceError, getPageByUrl, webUrl, type ConfluenceApi, type ContentJson } from './confluence/api.ts';
 
-export class ConfluenceError extends Error {
-  constructor(
-    readonly status: number,
-    message: string,
-  ) {
-    super(message);
-  }
+export { ConfluenceError, resolvePageRef } from './confluence/api.ts';
+
+export interface ConfluenceOptions {
+  /** Credentials from the app's Confluence settings, or CONFLUENCE_BASE_URL / CONFLUENCE_TOKEN from .env.local. */
+  store: () => ConfluenceCredentialStore;
 }
 
 /**
- * Local endpoints for the snapp usecase section:
- *   GET  /api/confluence/status         -> { baseUrl, tokenSet }
- *   GET  /api/confluence/page?url=…     -> the page (id, title, version, storage)
- *   POST /api/confluence/publish        -> updates a page (version-checked) and its diagram attachments
+ * Local Confluence endpoints:
+ *   GET    /api/confluence/status         -> { baseUrl, tokenSet, source, authType, email?, masked } (never the token)
+ *   PUT    /api/confluence/config         -> save base URL, auth type, email and token (token: string = set, missing = keep)
+ *   DELETE /api/confluence/config         -> remove the token saved in the app
+ *   POST   /api/confluence/config/test    -> test the form values (or the saved ones)
+ *   GET    /api/confluence/page?url=…     -> the page (id, title, version, storage)            [snapp usecase]
+ *   POST   /api/confluence/publish        -> updates a page (version-checked) and attachments [snapp usecase]
  */
 export function confluencePlugin(options: ConfluenceOptions): Plugin {
   const middleware: Connect.NextHandleFunction = (req, res, next) => {
@@ -36,12 +33,16 @@ export function confluencePlugin(options: ConfluenceOptions): Plugin {
         send(res, err instanceof ConfluenceError ? err.status : 502, { error: err instanceof Error ? err.message : 'خطای Confluence.' });
       }
     };
-    if (url === '/api/confluence/status' && req.method === 'GET') return void run(async () => ({ baseUrl: options.baseUrl, tokenSet: Boolean(options.token) }));
+    const store = options.store();
+    if (url === '/api/confluence/status' && req.method === 'GET') return void run(async () => store.status());
+    if (url === '/api/confluence/config' && req.method === 'PUT') return void run(async () => store.save(await jsonBody(req)));
+    if (url === '/api/confluence/config' && req.method === 'DELETE') return void run(async () => store.remove());
+    if (url === '/api/confluence/config/test' && req.method === 'POST') return void run(async () => testConnection(store, await jsonBody(req)));
     if (url === '/api/confluence/page' && req.method === 'GET') {
       const pageUrl = new URL(req.url ?? '', 'http://localhost').searchParams.get('url') ?? '';
-      return void run(() => getPage(options, pageUrl));
+      return void run(() => getPage(store, pageUrl));
     }
-    if (url === '/api/confluence/publish' && req.method === 'POST') return void run(() => publish(options, req));
+    if (url === '/api/confluence/publish' && req.method === 'POST') return void run(() => publish(store, req));
     send(res, 404, { error: 'Not found' });
   };
   return {
@@ -55,80 +56,48 @@ export function confluencePlugin(options: ConfluenceOptions): Plugin {
   };
 }
 
-function client(options: ConfluenceOptions) {
-  if (!options.token) {
+async function jsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
+  try {
+    const v = JSON.parse((await readBody(req, 64 * 1024)) || '{}') as unknown;
+    if (v && typeof v === 'object' && !Array.isArray(v)) return v as Record<string, unknown>;
+  } catch {
+    /* fall through */
+  }
+  throw new ConfluenceError(400, 'بدنهٔ درخواست نامعتبر است.');
+}
+
+function client(store: ConfluenceCredentialStore): { api: ConfluenceApi; baseUrl: string } {
+  const creds = store.resolve();
+  if (!creds) {
     throw new ConfluenceError(
       401,
-      'توکن Confluence تنظیم نشده است. در Confluence از Profile → Personal Access Tokens یک توکن بسازید، آن را با CONFLUENCE_TOKEN در .env.local قرار دهید و `npm run dev` را دوباره اجرا کنید. تا آن موقع می‌توانید محتوای صفحه را کپی و Paste کنید.',
+      'توکن Confluence تنظیم نشده است. در تنظیمات Confluence (یا با CONFLUENCE_TOKEN در .env.local) آن را وارد کنید. تا آن موقع می‌توانید محتوای صفحه را کپی و Paste کنید.',
     );
   }
-  const base = options.baseUrl.replace(/\/+$/, '');
-  return async <T>(path: string, init: RequestInit = {}): Promise<T> => {
-    let res: Response;
-    try {
-      res = await fetch(base + path, {
-        ...init,
-        headers: { Authorization: `Bearer ${options.token}`, Accept: 'application/json', ...(init.headers ?? {}) },
-        signal: AbortSignal.timeout(30_000),
-      });
-    } catch {
-      throw new ConfluenceError(502, `اتصال به ${base} برقرار نشد. VPN یا شبکهٔ داخلی را بررسی کنید.`);
-    }
-    if (res.status === 401) throw new ConfluenceError(401, 'Confluence توکن را نپذیرفت. CONFLUENCE_TOKEN را در .env.local بررسی کنید.');
-    if (res.status === 403) throw new ConfluenceError(403, 'با این توکن به این صفحه دسترسی ندارید.');
-    if (res.status === 404) throw new ConfluenceError(404, 'صفحه در Confluence پیدا نشد.');
-    if (res.status === 409) throw new ConfluenceError(409, 'Confluence تغییر را نپذیرفت؛ صفحه در این فاصله تغییر کرده است. دوباره ایمپورت کنید.');
-    if (!res.ok) {
-      const body = (await res.json().catch(() => null)) as { message?: string } | null;
-      throw new ConfluenceError(502, `خطای Confluence ${res.status}${body?.message ? `: ${body.message}` : ''}`);
-    }
-    return (await res.json()) as T;
-  };
+  return { api: confluenceApi(creds), baseUrl: creds.baseUrl };
 }
 
-interface ContentJson {
-  id: string;
-  title: string;
-  type: string;
-  version: { number: number };
-  space?: { key: string };
-  body?: { storage?: { value: string } };
-  _links?: { webui?: string; base?: string };
-}
-
-/** Accepts …/pages/123/Title, …/viewpage.action?pageId=123 and …/display/SPACE/Title links on the configured host. */
-export function resolvePageRef(baseUrl: string, pageUrl: string): { id: string } | { spaceKey: string; title: string } {
-  let url: URL;
+/** Connection Test: who the credentials belong to (works on Data Center and Cloud). */
+async function testConnection(store: ConfluenceCredentialStore, input: Record<string, unknown>) {
+  const creds = store.candidate(input);
   try {
-    url = new URL(pageUrl.trim());
-  } catch {
-    throw new ConfluenceError(400, 'لینک Confluence معتبر نیست.');
+    const user = await confluenceApi(creds, { retries: 0, timeoutMs: 15_000 })<{ displayName?: string; username?: string; email?: string }>('/rest/api/user/current');
+    if (!user.displayName && !user.username && !user.email) return { ok: false, message: 'Confluence پاسخ داد اما کاربر شناخته نشد؛ توکن را بررسی کنید.' };
+    return { ok: true, message: `اتصال برقرار است؛ وارد شده با ${user.displayName ?? user.username ?? user.email}.` };
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : String(err) };
   }
-  if (url.host !== new URL(baseUrl).host) throw new ConfluenceError(400, `فقط صفحات ${new URL(baseUrl).host} پشتیبانی می‌شوند.`);
-  const id = /\/pages\/(\d+)/.exec(url.pathname)?.[1] ?? url.searchParams.get('pageId');
-  if (id && /^\d+$/.test(id)) return { id };
-  const display = /\/display\/([^/]+)\/([^/?#]+)/.exec(url.pathname);
-  if (display) return { spaceKey: decodeURIComponent(display[1]), title: decodeURIComponent(display[2].replace(/\+/g, ' ')) };
-  throw new ConfluenceError(400, 'شناسهٔ صفحه از لینک پیدا نشد. لینک کامل صفحه را (مثل …/pages/154408734/…) وارد کنید.');
 }
 
-async function getPage(options: ConfluenceOptions, pageUrl: string) {
-  const ref = resolvePageRef(options.baseUrl, pageUrl);
-  const api = client(options);
-  const expand = 'expand=body.storage,version,space';
-  let page: ContentJson | undefined;
-  if ('id' in ref) page = await api<ContentJson>(`/rest/api/content/${ref.id}?${expand}`);
-  else {
-    const found = await api<{ results: ContentJson[] }>(`/rest/api/content?spaceKey=${encodeURIComponent(ref.spaceKey)}&title=${encodeURIComponent(ref.title)}&${expand}`);
-    page = found.results[0];
-    if (!page) throw new ConfluenceError(404, 'صفحه در Confluence پیدا نشد.');
-  }
+async function getPage(store: ConfluenceCredentialStore, pageUrl: string) {
+  const { api, baseUrl } = client(store);
+  const page = await getPageByUrl(api, baseUrl, pageUrl);
   return {
     id: page.id,
     title: page.title,
     version: page.version.number,
     spaceKey: page.space?.key,
-    webUrl: page._links?.webui ? options.baseUrl.replace(/\/+$/, '') + page._links.webui : pageUrl,
+    webUrl: webUrl(baseUrl, page) ?? pageUrl,
     storage: page.body?.storage?.value ?? '',
   };
 }
@@ -140,7 +109,7 @@ interface PublishBody {
   attachments?: unknown;
 }
 
-async function publish(options: ConfluenceOptions, req: IncomingMessage) {
+async function publish(store: ConfluenceCredentialStore, req: IncomingMessage) {
   let body: PublishBody;
   try {
     body = JSON.parse(await readBody(req, 25 * 1024 * 1024)) as PublishBody;
@@ -152,7 +121,7 @@ async function publish(options: ConfluenceOptions, req: IncomingMessage) {
     throw new ConfluenceError(400, 'شناسهٔ صفحه، نسخه یا محتوا ارسال نشده است.');
   }
   const attachments = Array.isArray(body.attachments) ? (body.attachments as { fileName?: unknown; base64?: unknown }[]) : [];
-  const api = client(options);
+  const { api, baseUrl } = client(store);
 
   const current = await api<ContentJson>(`/rest/api/content/${pageId}?expand=version`);
   if (current.version.number !== version) {
@@ -185,7 +154,7 @@ async function publish(options: ConfluenceOptions, req: IncomingMessage) {
   });
   return {
     version: updated.version.number,
-    webUrl: updated._links?.webui ? options.baseUrl.replace(/\/+$/, '') + updated._links.webui : undefined,
+    webUrl: webUrl(baseUrl, updated),
   };
 }
 

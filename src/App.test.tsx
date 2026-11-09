@@ -54,7 +54,7 @@ const cell = (row: number, column: string) => screen.getByRole('textbox', { name
 
 async function generated(transport?: AiTransport) {
   const r = renderApp(transport);
-  await r.user.click(screen.getByRole('button', { name: 'ساخت Seed Data' }));
+  await r.user.click(screen.getByRole('button', { name: 'ساخت سریع (بدون Confluence)' }));
   await screen.findByText(/2 Seed Data ساخته شد/);
   return r;
 }
@@ -85,11 +85,11 @@ describe('workspace', () => {
     const transport = aiReturning();
     const { user } = renderApp(transport);
     expect(screen.getByText(/طبق راهنمای Seed Data نیست و این ستون‌ها را ندارد: Seed Data ID/)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'ساخت Seed Data' }));
+    await user.click(screen.getByRole('button', { name: 'ساخت سریع (بدون Confluence)' }));
     expect(transport).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole('button', { name: 'استفاده از ساختار راهنمای QA Seed Data' }));
-    await user.click(screen.getByRole('button', { name: 'ساخت Seed Data' }));
+    await user.click(screen.getByRole('button', { name: 'ساخت سریع (بدون Confluence)' }));
     await screen.findByText(/2 Seed Data ساخته شد/);
     expect(headerNames()).toEqual(COLUMNS);
   });
@@ -155,7 +155,7 @@ describe('generation', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(ws));
     const transport = vi.fn<AiTransport>();
     const { user } = renderApp(transport);
-    await user.click(screen.getByRole('button', { name: 'ساخت Seed Data' }));
+    await user.click(screen.getByRole('button', { name: 'ساخت سریع (بدون Confluence)' }));
     expect(await screen.findByText(/Seed Data ساخته شد/)).toBeInTheDocument();
     expect(transport).not.toHaveBeenCalled();
     expect(headerNames()).toEqual(COLUMNS);
@@ -167,7 +167,7 @@ describe('generation', () => {
     const transport = vi.fn<AiTransport>();
     const { user } = renderApp(transport);
     await user.clear(screen.getByLabelText('متن ورودی'));
-    await user.click(screen.getByRole('button', { name: 'ساخت Seed Data' }));
+    await user.click(screen.getByRole('button', { name: 'ساخت سریع (بدون Confluence)' }));
     expect(screen.getByRole('alert')).toHaveTextContent('ابتدا نیازمندی‌ها یا یادداشت‌ها را وارد کنید');
     expect(transport).not.toHaveBeenCalled();
   });
