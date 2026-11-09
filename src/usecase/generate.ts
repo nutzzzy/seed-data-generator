@@ -1,4 +1,4 @@
-import { GenerationError, httpTransport, type AiTransport } from '../lib/generate';
+import { aiTarget, GenerationError, httpTransport, type AiTransport } from '../lib/generate';
 import { extractJson } from '../lib/parseResponse';
 import type { Settings } from '../lib/types';
 import { useCaseMarkdown } from './confluenceExport';
@@ -94,15 +94,14 @@ interface Args {
 async function call(args: Args, user: string, schema: Record<string, unknown>): Promise<unknown> {
   const { settings, signal, transport = httpTransport } = args;
   if (settings.provider === 'basic') throw new GenerationError('ساخت Use Case به AI نیاز دارد. در تنظیمات Claude Code را انتخاب کنید.');
+  const target = aiTarget(settings);
   const timeoutMs = (settings.timeoutSeconds > 0 ? settings.timeoutSeconds : 120) * 1000;
   const timeout = AbortSignal.timeout(timeoutMs);
   let text: string;
   try {
     text = await transport(
       {
-        provider: settings.provider,
-        model: { 'claude-code': settings.claudeCodeModel, anthropic: settings.anthropicModel, ollama: settings.ollamaModel }[settings.provider],
-        baseUrl: settings.provider === 'ollama' ? settings.ollamaBaseUrl : undefined,
+        ...target,
         system: SYSTEM,
         user,
         schema,

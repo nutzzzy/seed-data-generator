@@ -129,6 +129,23 @@ describe('generateTable', () => {
     expect(transport.mock.calls[0][0]).toMatchObject({ provider: 'claude-code', model: '' });
   });
 
+  it('sends only the agent id for a configured agent; its model and keys stay on the server', async () => {
+    const transport = vi.fn<AiTransport>().mockResolvedValue('{"rows":[{"ID":"AC-1"}],"issues":[]}');
+    const settings = { ...defaultSettings, provider: 'agent' as const, agentId: 'agent_1', agentName: 'OpenRouter' };
+    await generateTable({ standard: exampleStandard, template: tpl, input: 'notes', settings, signal: signal(), transport });
+    const req = transport.mock.calls[0][0];
+    expect(req).toMatchObject({ provider: 'agent', agentId: 'agent_1' });
+    expect(req).not.toHaveProperty('model');
+    expect(req).not.toHaveProperty('baseUrl');
+  });
+
+  it('asks for an agent when none is selected', async () => {
+    const transport = vi.fn<AiTransport>();
+    const settings = { ...defaultSettings, provider: 'agent' as const };
+    await expect(generateTable({ standard: exampleStandard, template: tpl, input: 'x', settings, signal: signal(), transport })).rejects.toThrow(/Agent/);
+    expect(transport).not.toHaveBeenCalled();
+  });
+
   it('uses the offline generator when no AI is configured', async () => {
     const transport = vi.fn<AiTransport>();
     const table = await generateTable({ standard: exampleStandard, template: tpl, input: '- a\n- b', settings: { ...defaultSettings, provider: 'basic' }, signal: signal(), transport });

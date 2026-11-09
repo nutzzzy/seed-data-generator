@@ -1458,3 +1458,27 @@ h4.row-between select {
   margin: 0;
   font-size: 14px;
 }
+
+/* ---------- Agent management ---------- */
+.agent-row {
+  cursor: default;
+}
+.agent-row.disabled .agent-main > strong,
+.agent-row.disabled .agent-main > small {
+  opacity: 0.65;
+}
+.agent-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.agent-main small {
+  overflow-wrap: anywhere;
+}
+.agent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}

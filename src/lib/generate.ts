@@ -8,7 +8,9 @@ import type { GeneratedTable, Settings, Standard, Template } from './types';
 /** What the local server endpoint receives. Only the current generation's data is sent. */
 export interface AiRequest {
   provider: Exclude<Settings['provider'], 'basic'>;
-  model: string;
+  /** With provider 'agent': the agent that runs the request (its model and keys live on the server). */
+  agentId?: string;
+  model?: string;
   baseUrl?: string;
   system: string;
   user: string;
@@ -46,6 +48,23 @@ export const httpTransport: AiTransport = async (req, signal) => {
   return body.text;
 };
 
+/**
+ * Who answers the request. Agents are resolved on the server; the older providers send exactly the fields they
+ * always sent, so their requests (and so their output) are unchanged.
+ */
+export function aiTarget(settings: Settings): Pick<AiRequest, 'provider' | 'agentId' | 'model' | 'baseUrl'> {
+  if (settings.provider === 'basic') throw new GenerationError('برای این کار یک Agent (AI) لازم است. در تنظیمات یک Agent انتخاب کنید.');
+  if (settings.provider === 'agent') {
+    if (!settings.agentId) throw new GenerationError('هیچ Agentی انتخاب نشده است. در تنظیمات یک Agent انتخاب کنید.');
+    return { provider: 'agent', agentId: settings.agentId };
+  }
+  return {
+    provider: settings.provider,
+    model: { 'claude-code': settings.claudeCodeModel, anthropic: settings.anthropicModel, ollama: settings.ollamaModel }[settings.provider],
+    baseUrl: settings.provider === 'ollama' ? settings.ollamaBaseUrl : undefined,
+  };
+}
+
 export interface GenerateArgs {
   standard: Standard;
   template: Template;
@@ -70,6 +89,7 @@ export async function generateTable({ standard, template, input, settings, signa
     return tableFromRows(template.columns, normalizeSeedCells(template.columns, rows), 'basic', notes);
   }
 
+  const target = aiTarget(settings);
   const prompt = buildPrompt(standard, template.columns, input);
   const timeoutMs = (settings.timeoutSeconds > 0 ? settings.timeoutSeconds : 120) * 1000;
   const timeout = AbortSignal.timeout(timeoutMs);
@@ -79,9 +99,7 @@ export async function generateTable({ standard, template, input, settings, signa
   try {
     text = await transport(
       {
-        provider: settings.provider,
-        model: { 'claude-code': settings.claudeCodeModel, anthropic: settings.anthropicModel, ollama: settings.ollamaModel }[settings.provider],
-        baseUrl: settings.provider === 'ollama' ? settings.ollamaBaseUrl : undefined,
+        ...target,
         system: prompt.system,
         user: prompt.user,
         schema: prompt.schema,

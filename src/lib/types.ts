@@ -87,10 +87,17 @@ export interface SavedTable {
   savedAt: string;
 }
 
-export type ProviderId = 'basic' | 'claude-code' | 'anthropic' | 'ollama';
+/**
+ * 'agent' = a configured agent on the local server (Settings.agentId). The other values are the providers from before
+ * agents existed; they keep working unchanged until the user picks an agent in Settings.
+ */
+export type ProviderId = 'basic' | 'claude-code' | 'anthropic' | 'ollama' | 'agent';
 
 export interface Settings {
   provider: ProviderId;
+  /** With provider 'agent': the agent's id and its name at the time it was chosen (for labels). */
+  agentId?: string;
+  agentName?: string;
   /** Empty = the model Claude Code uses by default. */
   claudeCodeModel: string;
   anthropicModel: string;

@@ -1,15 +1,20 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Connect, Plugin } from 'vite';
 import { isSameOrigin, readBody, send } from './http.ts';
-import { claudeCodeVersion, generateWithAnthropic, generateWithClaudeCode, generateWithOllama, ProviderError } from './providers.ts';
+import type { AgentRuntime } from './agents/runtime.ts';
+import { claudeCodeVersion, ProviderError } from './providers.ts';
 
 interface Options {
   /** From .env / .env.local; falls back to the SDK's own credential lookup (env vars, `ant auth login`). */
   anthropicApiKey?: string;
+  /** Agents and provider adapters; created lazily so nothing touches the disk until a request needs it. */
+  runtime: () => AgentRuntime;
 }
 
 interface GenerateBody {
   provider?: unknown;
+  /** With provider "agent": the configured agent to run. */
+  agentId?: unknown;
   model?: unknown;
   baseUrl?: unknown;
   system?: unknown;
@@ -24,7 +29,7 @@ interface GenerateBody {
  *   POST /api/ai/generate  -> { text } from the selected provider
  * Keeping provider calls here means API keys never reach the browser.
  */
-export function aiPlugin(options: Options = {}): Plugin {
+export function aiPlugin(options: Options): Plugin {
   const middleware: Connect.NextHandleFunction = (req, res, next) => {
     const url = req.url?.split('?')[0];
     if (!url?.startsWith('/api/ai/')) return next();
@@ -74,8 +79,10 @@ async function handleGenerate(req: IncomingMessage, res: ServerResponse, options
   } catch (err) {
     return send(res, 400, { error: err instanceof Error ? err.message : 'بدنهٔ درخواست نامعتبر است.' });
   }
-  const { provider, model, baseUrl, system, user, schema } = body;
-  if (typeof system !== 'string' || typeof user !== 'string' || typeof model !== 'string' || (provider !== 'claude-code' && !model.trim())) {
+  const { provider, agentId, model, baseUrl, system, user, schema } = body;
+  const isAgent = provider === 'agent';
+  if (isAgent && (typeof agentId !== 'string' || !agentId)) return send(res, 400, { error: 'Agent انتخاب نشده است.' });
+  if (typeof system !== 'string' || typeof user !== 'string' || (!isAgent && (typeof model !== 'string' || (provider !== 'claude-code' && !model.trim())))) {
     return send(res, 400, { error: 'مدل یا متن درخواست ارسال نشده است.' });
   }
   if (!schema || typeof schema !== 'object') return send(res, 400, { error: 'ساختار خروجی (schema) ارسال نشده است.' });
@@ -88,14 +95,19 @@ async function handleGenerate(req: IncomingMessage, res: ServerResponse, options
   });
 
   try {
-    const request = { model: model.trim(), system, user, schema: schema as Record<string, unknown>, timeoutMs, signal: controller.signal };
+    const modelName = typeof model === 'string' ? model.trim() : '';
+    const request = { model: modelName, system, user, schema: schema as Record<string, unknown>, timeoutMs, signal: controller.signal };
+    const { agents, registry } = options.runtime();
     let text: string;
-    if (provider === 'claude-code') text = await generateWithClaudeCode(request);
-    else if (provider === 'anthropic') text = await generateWithAnthropic(request, options.anthropicApiKey);
-    else if (provider === 'ollama') {
-      if (typeof baseUrl !== 'string') return send(res, 400, { error: 'آدرس Ollama ارسال نشده است.' });
-      text = await generateWithOllama({ ...request, baseUrl: checkHttpUrl(baseUrl) });
-    } else return send(res, 400, { error: 'روش تولید ناشناخته است.' });
+    if (isAgent) text = await agents.generate(agentId as string, request);
+    else {
+      // Requests from before agents existed: the same provider adapters, configured from the request itself.
+      const legacy = typeof provider === 'string' && ['claude-code', 'anthropic', 'ollama'].includes(provider) ? registry.get(provider) : undefined;
+      if (!legacy) return send(res, 400, { error: 'روش تولید ناشناخته است.' });
+      if (provider === 'ollama' && typeof baseUrl !== 'string') return send(res, 400, { error: 'آدرس Ollama ارسال نشده است.' });
+      const settings: Record<string, string> = provider === 'ollama' ? { model: modelName, baseUrl: checkHttpUrl(baseUrl as string) } : { model: modelName };
+      text = await legacy.generate(request, settings, {});
+    }
     send(res, 200, { text });
   } catch (err) {
     if (controller.signal.aborted) return;

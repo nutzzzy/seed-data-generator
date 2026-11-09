@@ -48,7 +48,16 @@ CONFLUENCE_TOKEN=<your token>
 
 The token stays in the local dev server and is only sent to `CONFLUENCE_BASE_URL`.
 
-## Generation providers (Settings)
+## Agents (Settings)
+
+Settings is the agent manager: add, edit, enable / disable, remove and test AI agents, pick a default agent, and choose which agent this section uses. Each agent has a name, a provider type and that provider's settings (model, Base URL, API key…).
+
+- Agent configs live in `.data/agents.json`, API keys encrypted (AES-256-GCM) in `.data/secrets.json`, both on the local server and readable by your user only (`SEED_DATA_DIR` and `SEED_SECRET_KEY` in `.env.local` change the location and key). Keys are never stored in the browser and never sent back to it: the UI only shows them masked, and you can replace or remove them.
+- The built-in agents **Claude Code**, **Claude (Anthropic API)** and **Ollama** are the providers below. The first time Settings is opened, your earlier model choices are copied into them. Until you save an agent choice, generation keeps using exactly the old request.
+- **OpenAI-compatible service** – OpenAI, Azure OpenAI, OpenRouter, Gemini's OpenAI endpoint, LM Studio, vLLM… (Base URL, model, optional API key, structured-output mode).
+- New provider types are added in `server/agents/registry.ts` (one `ProviderDefinition`: settings fields, `generate`, `testConnection`); the form in Settings is built from those fields.
+
+## Generation providers
 
 - **Claude Code (default)** – runs the local `claude` CLI headless (tools and MCP off), so usage counts against the Claude Code account you are logged into. No API key. If `claude` is not on your PATH, set `CLAUDE_CODE_PATH` in `.env.local`.
 - **Claude (Anthropic API)** – copy `.env.example` to `.env.local`, set `ANTHROPIC_API_KEY`, restart `npm run dev`. The key stays in the local dev server.
@@ -66,7 +75,7 @@ The token stays in the local dev server and is only sent to `CONFLUENCE_BASE_URL
 - `src/seed/` – the Seed Data section; `src/usecase/` – the snapp usecase section (logic, components, tests); `src/App.tsx` – the switch between them
 - `src/lib/` – framework-free logic: types, model helpers, prompt, response normalizer, offline generator, validator, exporters, storage, clipboard
 - `src/components/` – shared UI pieces
-- `server/` – Vite plugins exposing `/api/ai/status` and `/api/ai/generate` (Claude Code, Anthropic API, Ollama) and `/api/confluence/*` (page import and publish)
+- `server/` – Vite plugins exposing `/api/ai/status` and `/api/ai/generate` (by agent, or the old provider fields), `/api/agents/*` (agent management) and `/api/confluence/*` (page import and publish); `server/agents/` – provider registry and agent service; `secretStore.ts` – encrypted key storage
 
 ---
 
