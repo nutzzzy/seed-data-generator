@@ -1689,3 +1689,14 @@ h4.row-between select {
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius);
 }
+.missing {
+  font-size: 13px;
+  color: var(--warning);
+  background: var(--warning-soft);
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+.missing ul {
+  margin: 4px 0 0;
+  padding-inline-start: 20px;
+}
