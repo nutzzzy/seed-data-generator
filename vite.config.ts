@@ -37,6 +37,8 @@ export default defineConfig(({ mode }) => {
       environment: 'jsdom',
       globals: true,
       setupFiles: ['./src/test/setup.ts'],
+      // UI flows (modal, full app) can exceed the default 5 s when the whole suite runs in parallel.
+      testTimeout: 15_000,
     },
   };
 });

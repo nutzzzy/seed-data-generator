@@ -33,7 +33,7 @@ export function ExportPanel({ table, name, hasErrors }: Props) {
       <div className="export-grid">
         <ExportOption
           title="کپی برای Confluence — هر Seed Data جدا"
-          detail="پیشنهادی. طبق ساختار راهنما: عنوان Seed Data ID و بعد Name، Purpose، Environment، Data (جدول Field/Value)، Preconditions، How to Create و Used For."
+          detail="پیشنهادی. طبق راهنمای Seed Data (نسخهٔ ۴): عنوان = Seed Data ID، جدول Metadata (برای Page Properties) و بعد Purpose، Data (جدول Field | Value)، Preconditions، How to Create / Verify، Reset / Cleanup و Used By."
           primary
           disabled={disabled}
           onClick={() => copy('Seed Dataها برای Confluence', () => copyRich(toSeedDataHtml(table), toSeedDataText(table)), toSeedDataHtml(table))}

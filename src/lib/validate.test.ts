@@ -4,6 +4,7 @@ import { seedDataStandard, seedDataTemplate } from './defaults';
 import { blankColumn, tableFromRows } from './model';
 import type { Template } from './types';
 import { validateTable } from './validate';
+import { seedCells } from '../test/seedFixtures';
 
 const tpl = exampleTemplate;
 const [ID, SCEN, GIVEN, WHEN, THEN, PRIO] = tpl.columns.map((c) => c.id);
@@ -87,39 +88,30 @@ describe('validateTable', () => {
   });
 });
 
-describe('QA Seed Data template', () => {
+describe('QA Seed Data template (guide v4)', () => {
   const sd = seedDataTemplate;
-  const byName = (name: string) => sd.columns.find((c) => c.name === name)!.id;
-  const row = (patch: Record<string, string> = {}) => ({
-    [byName('Seed Data ID')]: 'SD-ORDER-PENDING-001',
-    [byName('Name')]: 'Pending Order - Active Vendor',
-    [byName('Purpose')]: 'Order acceptance tests',
-    [byName('Environment')]: 'UAT',
-    [byName('Data')]: 'Vendor ID: 100977\nOrder ID: Dynamic\nOrder Status: Pending',
-    [byName('Preconditions')]: 'Vendor must be Active.',
-    [byName('How to Create')]: '1. Create an order.',
-    [byName('Used For')]: 'Vendor can accept pending order',
-    ...patch,
-  });
+  const cells = (patch: Record<string, string> = {}) => seedCells(patch);
 
-  it('accepts rows that follow the guide, including IDs without a description part', () => {
-    const r = validateTable(tableFromRows(sd.columns, [row(), row({ [byName('Seed Data ID')]: 'SD-ORDER-001' })], 'ai'), sd, seedDataStandard);
+  it('accepts rows that follow the guide, including multi-part states', () => {
+    const r = validateTable(tableFromRows(sd.columns, [cells(), cells({ 'Seed Data ID': 'SD-BIKEREXP-BIKER-ACTIVE-FREE-001' })], 'ai'), sd, seedDataStandard);
     expect(r.errors).toEqual([]);
   });
 
-  it('flags naming convention, environment, missing status, sensitive data and duplicate IDs', () => {
+  it('flags the naming convention, production, Seed Status / Usage Mode, missing status, sensitive data and duplicate IDs', () => {
     const rows = [
-      row({ [byName('Seed Data ID')]: 'sd-order-1' }),
-      row({ [byName('Environment')]: 'dev' }),
-      row({ [byName('Seed Data ID')]: 'SD-VENDOR-001', [byName('Data')]: 'Vendor ID: 100977' }),
-      row({ [byName('Seed Data ID')]: 'SD-USER-001', [byName('How to Create')]: 'Login with password 1234' }),
-      row({ [byName('Name')]: 'Same ID as row 2' }),
+      cells({ 'Seed Data ID': 'SD-VENDOR-INACTIVE-001' }), // no Domain part (old format)
+      cells({ 'Seed Data ID': 'SD-BORDAR-VENDOR-A-001', Environment: 'production', 'Seed Status': 'Healthy', 'Usage Mode': 'Private' }),
+      cells({ 'Seed Data ID': 'SD-BORDAR-VENDOR-B-001', Data: 'Vendor ID: 31756' }),
+      cells({ 'Seed Data ID': 'SD-BORDAR-USER-C-001', 'How to Create / Verify': 'Login with password 1234 and OTP 5555' }),
+      cells({ 'Seed Data ID': 'SD-BORDAR-VENDOR-B-001', Name: 'Same ID as row 3' }),
     ];
     const msgs = validateTable(tableFromRows(sd.columns, rows, 'ai'), sd, seedDataStandard).errors.map((e) => e.message);
-    expect(msgs).toContain('ردیف 1: «Seed Data ID» با قالب موردانتظار مطابقت ندارد: SD-[ENTITY]-[DESCRIPTION]-[NUMBER], e.g. SD-ORDER-PENDING-001');
-    expect(msgs).toContain('ردیف 2: «Environment» باید یکی از این مقدارها باشد: stage، UAT، production (مقدار فعلی: «dev»).');
+    expect(msgs).toContain('ردیف 1: «Seed Data ID» با قالب موردانتظار مطابقت ندارد: SD-[DOMAIN]-[ENTITY]-[STATE]-[NNN], e.g. SD-BORDAR-VENDOR-INACTIVE-001');
+    expect(msgs).toContain('ردیف 2: «Environment» باید یکی از این مقدارها باشد: stage، UAT (مقدار فعلی: «production»).');
+    expect(msgs).toContain('ردیف 2: «Seed Status» باید یکی از این مقدارها باشد: Active، Broken، Deprecated (مقدار فعلی: «Healthy»).');
+    expect(msgs).toContain('ردیف 2: «Usage Mode» باید یکی از این مقدارها باشد: Shared، Exclusive (مقدار فعلی: «Private»).');
     expect(msgs.some((m) => m.startsWith('ردیف 3: «Data» با قالب موردانتظار مطابقت ندارد'))).toBe(true);
-    expect(msgs).toContain('ردیف 4: «How to Create» نباید اطلاعات حساس داشته باشد (password).');
-    expect(msgs).toContain('ردیف 5: مقدار «SD-ORDER-PENDING-001» در «Seed Data ID» تکراری است (ردیف 2).');
+    expect(msgs.some((m) => m.startsWith('ردیف 4: «How to Create / Verify» نباید اطلاعات حساس داشته باشد'))).toBe(true);
+    expect(msgs).toContain('ردیف 5: مقدار «SD-BORDAR-VENDOR-B-001» در «Seed Data ID» تکراری است (ردیف 3).');
   });
 });

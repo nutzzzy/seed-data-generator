@@ -9,6 +9,7 @@ import type { AiTransport } from './lib/generate';
 import { STORAGE_KEY } from './lib/storage';
 import type { Workspace } from './lib/types';
 import { exampleStandard, exampleTemplate } from './test/fixtures';
+import { SEED_ROW } from './test/seedFixtures';
 
 function renderApp(transport: AiTransport = aiReturning()) {
   const user = userEvent.setup();
@@ -24,21 +25,25 @@ function renderApp(transport: AiTransport = aiReturning()) {
 
 const COLUMNS = seedDataTemplate.columns.map((c) => c.name);
 const vendor = {
-  'Seed Data ID': 'SD-VENDOR-ACTIVE-001',
-  Name: 'Active Vendor',
-  Purpose: 'برای تست سناریوهایی که نیاز به یک Vendor فعال دارند.',
+  ...SEED_ROW,
+  'Seed Data ID': 'SD-FP-VENDOR-ACTIVE-001',
+  Name: 'Active Vendor - Tehran',
+  Domain: 'FP',
   Environment: 'UAT',
-  Data: 'Vendor ID: 100977\nVendor Name: QA Vendor 01\nStatus: Active',
-  Preconditions: 'Vendor must be Active.',
-  'How to Create': 'Not specified',
-  'Used For': 'Vendor Login, Order Management',
+  Purpose: 'برای تست سناریوهایی که نیاز به یک Vendor فعال دارند.',
+  Data: 'Vendor ID: 100977\nVendor Name: QA Vendor 01\nVendor Status: Active',
+  Preconditions: 'Vendor Status برابر Active باشد.',
+  'How to Create / Verify': 'Not specified',
+  'Used By': 'FP-T101 Vendor Login, FP-T123 Order Management',
 };
 const order = {
   ...vendor,
-  'Seed Data ID': 'SD-ORDER-PENDING-001',
+  'Seed Data ID': 'SD-FP-ORDER-PENDING-001',
   Name: 'Pending Order - Active Vendor',
+  'Usage Mode': 'Exclusive',
   Data: 'Vendor ID: 100977\nOrder Status: Pending',
-  'How to Create': '1. Create an order.\n2. Leave it pending.',
+  'How to Create / Verify': '1. Create an order.\n2. Leave it pending.',
+  'Reset / Cleanup': 'Cancel the order and create a new one.',
 };
 /** A stand-in for Claude Code that answers like the real provider. */
 function aiReturning(rows: object[] = [vendor, order], issues: object[] = []) {
@@ -124,24 +129,24 @@ describe('generation', () => {
     const transport = aiReturning([vendor, order], [{ row: 0, column: '', message: 'Customer ID 1258 فقط در یک Test Case استفاده می‌شود؛ در Zephyr بماند.' }]);
     const { user } = await generated(transport);
     expect(headerNames()).toEqual(COLUMNS);
-    expect(cell(1, 'Seed Data ID')).toHaveValue('SD-VENDOR-ACTIVE-001');
+    expect(cell(1, 'Seed Data ID')).toHaveValue('SD-FP-VENDOR-ACTIVE-001');
 
     const req = transport.mock.calls[0][0];
     expect(req.provider).toBe('claude-code');
-    expect(req.user).toContain('SD-[ENTITY]-[DESCRIPTION]-[NUMBER]');
+    expect(req.user).toContain('SD-[DOMAIN]-[ENTITY]-[STATE]-[NNN]');
     expect(req.user).toContain('Food Partner');
 
     const panel = screen.getByRole('region', { name: 'نتیجهٔ بررسی' });
     expect(panel).toHaveTextContent('خطایی پیدا نشد');
     expect(panel).toHaveTextContent('در Zephyr بماند');
-    const howTo = within(panel).getByText(/نحوهٔ ایجاد در صورت نیاز/).closest('li')!;
+    const howTo = within(panel).getByText(/How to Create \/ Verify پر شده/).closest('li')!;
     expect(howTo).toHaveClass('state-review');
     expect(howTo).toHaveTextContent('ردیف 1');
 
     // Editing a cell re-checks the table immediately.
     await user.clear(cell(2, 'Environment'));
     await user.type(cell(2, 'Environment'), 'dev');
-    const env = within(panel).getByText(/Environment مشخص و مجاز است/).closest('li')!;
+    const env = within(panel).getByText(/Environment برابر stage یا UAT/).closest('li')!;
     expect(env).toHaveClass('state-fail');
     expect(env).toHaveTextContent('ردیف 2');
     await user.click(screen.getByRole('button', { name: 'بررسی با Checklist' }));
@@ -186,7 +191,7 @@ describe('generation', () => {
       await user.click(within(dialog()).getByRole('button', { name: 'ساخت دوباره' }));
       await waitFor(() => expect(screen.getByText(new RegExp(expected))).toBeInTheDocument());
       expect(screen.getByText(/ورودی و جدول فعلی شما تغییری نکرد/)).toBeInTheDocument();
-      expect(cell(1, 'Seed Data ID')).toHaveValue('SD-VENDOR-ACTIVE-001');
+      expect(cell(1, 'Seed Data ID')).toHaveValue('SD-FP-VENDOR-ACTIVE-001');
       expect(screen.getByLabelText('متن ورودی')).toHaveValue(input);
     }
     expect(transport).toHaveBeenCalledTimes(3);
@@ -207,18 +212,18 @@ describe('generation', () => {
     const again = renderApp();
     await again.user.click(screen.getByText('Seed Dataهای ذخیره‌شده (1)'));
     await again.user.click(screen.getByRole('button', { name: 'باز کردن' }));
-    expect(cell(2, 'Seed Data ID')).toHaveValue('SD-ORDER-PENDING-001');
+    expect(cell(2, 'Seed Data ID')).toHaveValue('SD-FP-ORDER-PENDING-001');
   });
 
   it('changes the template from the table only after confirmation; table edits alone never change it', async () => {
     const { user } = await generated();
-    await user.click(screen.getByRole('button', { name: 'حذف ستون Used For' }));
+    await user.click(screen.getByRole('button', { name: 'حذف ستون Used By' }));
     await user.click(within(dialog()).getByRole('button', { name: 'حذف ستون' }));
     await openAdvanced(user);
-    expect(templateNames()).toContain('Used For');
+    expect(templateNames()).toContain('Used By');
     await user.click(screen.getByRole('button', { name: 'به‌روزرسانی ساختار از روی جدول فعلی' }));
     await user.click(within(dialog()).getByRole('button', { name: 'به‌روزرسانی ساختار' }));
-    expect(templateNames()).not.toContain('Used For');
+    expect(templateNames()).not.toContain('Used By');
     await waitForSave((w) => w.templates[0].columns.length === COLUMNS.length - 1);
   });
 });
@@ -285,10 +290,10 @@ describe('standard and table structure (advanced)', () => {
     await user.click(screen.getByRole('button', { name: '+ افزودن ستون' }));
     const added = screen.getByRole('textbox', { name: `نام ستون ${COLUMNS.length + 1}` });
     await user.clear(added);
-    await user.type(added, 'Owner');
-    await user.click(screen.getByRole('button', { name: 'انتقال Owner به بالا' }));
-    expect(templateNames().slice(-2)).toEqual(['Owner', 'Used For']);
-    await user.click(screen.getByRole('button', { name: 'حذف Owner' }));
+    await user.type(added, 'Notes');
+    await user.click(screen.getByRole('button', { name: 'انتقال Notes به بالا' }));
+    expect(templateNames().slice(-2)).toEqual(['Notes', 'Used By']);
+    await user.click(screen.getByRole('button', { name: 'حذف Notes' }));
     expect(templateNames()).toEqual(COLUMNS);
   });
 });
@@ -315,10 +320,10 @@ describe('Confluence and Zephyr', () => {
     await user.click(screen.getByRole('button', { name: /کپی برای Confluence — هر Seed Data جدا/ }));
     expect(await screen.findByText('Seed Dataها برای Confluence کپی شد.')).toBeInTheDocument();
     const html = await items[0]['text/html'].text();
-    expect(html).toMatch(/^<h3>SD-VENDOR-ACTIVE-001<\/h3>\n<h4>Name<\/h4>/);
-    expect(html).toContain('<h4>Data</h4>\n<table><tbody><tr><th>Vendor ID</th><td dir="auto">100977</td></tr>');
-    expect(html).toContain('<h3>SD-ORDER-PENDING-001</h3>');
-    expect(await items[0]['text/plain'].text()).toMatch(/^SD-VENDOR-ACTIVE-001\nName: Active Vendor/);
+    expect(html).toMatch(/^<h2>SD-FP-VENDOR-ACTIVE-001<\/h2>\n<table><tbody><tr><th>Seed Data ID<\/th><td>SD-FP-VENDOR-ACTIVE-001<\/td><\/tr><tr><th>Name<\/th>/);
+    expect(html).toContain('<h3 dir="auto">Data</h3><table><tbody><tr><th>Field</th><th>Value</th></tr><tr><td>Vendor ID</td><td>100977</td></tr>');
+    expect(html).toContain('<h2>SD-FP-ORDER-PENDING-001</h2>');
+    expect(await items[0]['text/plain'].text()).toMatch(/^SD-FP-VENDOR-ACTIVE-001\nName: Active Vendor - Tehran/);
   });
 
   it('copies all Seed Data as one table with the template columns in order', async () => {
@@ -332,10 +337,10 @@ describe('Confluence and Zephyr', () => {
   it('shows and copies the Zephyr reference instead of the full data', async () => {
     const { user } = await generated();
     const exportSection = screen.getByRole('region', { name: 'انتقال به Confluence و Zephyr' });
-    expect(within(exportSection).getByText(/Test Data:\s*SD-VENDOR-ACTIVE-001\s*SD-ORDER-PENDING-001/)).toBeInTheDocument();
+    expect(within(exportSection).getByText(/Test Data:\s*SD-FP-VENDOR-ACTIVE-001\s*SD-FP-ORDER-PENDING-001/)).toBeInTheDocument();
     const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
     await user.click(screen.getByRole('button', { name: 'کپی Reference برای Zephyr' }));
-    expect(writeText).toHaveBeenCalledWith('Test Data:\nSD-VENDOR-ACTIVE-001\nSD-ORDER-PENDING-001');
+    expect(writeText).toHaveBeenCalledWith('Test Data:\nSD-FP-VENDOR-ACTIVE-001\nSD-FP-ORDER-PENDING-001');
   });
 
   it('shows the text for manual copying when the clipboard is blocked', async () => {

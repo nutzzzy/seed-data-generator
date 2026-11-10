@@ -1,6 +1,6 @@
 # QA Seed Data Generator
 
-Turn requirements and notes into Seed Data that follows the team's QA Seed Data Guide, then copy it into Confluence and reference it from Zephyr. The UI is Persian and right-to-left.
+Turn requirements and notes into Seed Data that follows the team's QA Seed Data Guide (v4, Confluence page QC / 247858019), then publish or copy it into Confluence and reference it from Zephyr. The UI is Persian and right-to-left.
 
 - [English](#run)
 - [راهنمای فارسی اجرا روی لوکال](#راهنمای-اجرا-روی-لوکال)
@@ -57,7 +57,7 @@ The token stays in the local dev server and is only sent to `CONFLUENCE_BASE_URL
 3. **Duplicate check** – existing Seed Data in those pages (one entry per `SD-…` id) is ranked by content and compared with the request by the selected agent (purpose, fields and values, entities, states, preconditions, scenario — not the title). Matches are shown with their page links, explanation, matching fields and last update, and you choose: **don't generate**, **generate as new**, or **overwrite** a selected page. Nothing is generated before this step finishes.
 4. **Generate** – the agent gets the project Skill (`.claude/skills/qa-seed-data/SKILL.md`), the request and the documentation, and generates with the active standard and table structure, so output and validation are the same as before. Assumptions and missing information are listed.
 5. **Preview and approval** – the exact page content in a Confluence-like preview (sandboxed), before/after for an update, editing (the approval is withdrawn after every edit), copy (everything, JSON, one section, plus all existing exports) and regenerate. Publishing needs the approval checkbox; an overwrite also asks for confirmation. An overwrite only replaces the sections with the same Seed Data IDs and keeps the rest of the page, unless you choose to replace the whole page.
-6. **Publish** – a new child page under the page you choose, or an update of the chosen page at the previewed version. If someone changed the page in the meantime, nothing is written: the new version is shown and you review and approve again. The result shows the title, link, page id, agent and time.
+6. **Publish** – one page per Seed Data, titled with its Seed Data ID (`SD-[DOMAIN]-[ENTITY]-[STATE]-[NNN]`), with the Metadata in a Page Properties macro and the guide's labels (`seed_data`, `sd-[domain]`, `sd-[entity]`, `env-[environment]`), under its Domain page (e.g. QA Seed Data › Bordar) unless you choose another parent. An ID that already exists (pages read, or pages labelled `seed_data` in the space) gets the next free number. An overwrite updates the chosen page at the previewed version and renames a descriptive title to the ID. If someone changed the page in the meantime, nothing is written: the new version is shown and you review and approve again. The result shows the title, link, page id, agent and time.
 
 The generated Seed Data also stays in the page's table, so it can be copied or exported even when you don't publish. **ساخت سریع (بدون Confluence)** is the previous generation from notes only.
 

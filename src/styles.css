@@ -1700,3 +1700,28 @@ h4.row-between select {
   margin: 4px 0 0;
   padding-inline-start: 20px;
 }
+.page-plan {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.page-plan li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.page-plan small {
+  color: var(--muted);
+}
+.page-preview h4 {
+  margin: 0 0 4px;
+}
+.bad-text {
+  color: var(--danger);
+}
