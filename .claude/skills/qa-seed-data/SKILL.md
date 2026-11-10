@@ -8,6 +8,20 @@ description: QA Seed Data Guide of the team. Use whenever creating, reviewing, n
 The team's standard for defining and managing Seed Data. Follow it whenever you create or review Seed Data.
 The same rules are built into this project's app as the "QA Seed Data (Confluence)" standard and "QA Seed Data table" template (`src/lib/defaults.ts`); keep both in sync when the guide changes.
 
+## Reference pages
+
+The guide and its complete example live in Confluence. These pages are the reference, not real Seed Data:
+
+- QA Seed Data (guide + full example): https://confluence.snappfood.ir/spaces/QC/pages/247858019/QA+Seed+Data — page ID 247858019, space QC
+
+Rules for reference pages:
+
+- Use them to follow the structure and the examples of the guide.
+- Their Seed Data IDs (e.g. `SD-FP-VENDOR-ACTIVE-001`, `SD-BIKEREXP-BIKER-ACTIVE-FREE-001`) are examples. Never count a reference page as existing Seed Data when searching for duplicates or similar Seed Data, and never update or overwrite it.
+- Child pages under a reference page are real Seed Data and are compared as usual.
+
+The app reads the page IDs from this list (`server/seedWorkflow/skill.ts`); add a line here to add another reference page.
+
 ## Goal
 
 Test data should be reusable, shareable between QAs, consistently structured and easy to find again.
