@@ -76,6 +76,10 @@ Settings is the agent manager: add, edit, enable / disable, remove and test AI a
 - **OpenAI-compatible service** – OpenAI, Azure OpenAI, OpenRouter, Gemini's OpenAI endpoint (the Gemini API template), LM Studio, vLLM… (Base URL, model, optional API key, structured-output mode).
 - New provider types are added in `server/agents/registry.ts` (one `ProviderDefinition`: settings fields, `generate`, `testConnection`); the form in Settings is built from those fields.
 
+## Network: VPN for agents, direct Confluence
+
+Optional setting (Settings → شبکه): agent requests use the VPN you already connected in the OS, while Confluence requests bypass it. Off by default. Needs Python 3.8+, no admin rights. Details, platform matrix and limitations: [docs/network-routing.md](docs/network-routing.md).
+
 ## Generation providers
 
 - **Claude Code (default)** – runs the local `claude` CLI headless (tools and MCP off), so usage counts against the Claude Code account you are logged into. No API key. If `claude` is not on your PATH, set `CLAUDE_CODE_PATH` in `.env.local`.

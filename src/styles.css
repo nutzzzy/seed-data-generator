@@ -846,6 +846,18 @@ details summary {
   font-weight: 500;
   margin-bottom: 6px;
 }
+.network-settings {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin: 0;
+  padding: 10px;
+  display: grid;
+  gap: 6px;
+}
+.network-settings legend {
+  font-weight: 500;
+  padding: 0 4px;
+}
 .provider {
   display: flex;
   gap: 10px;

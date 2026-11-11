@@ -5,6 +5,7 @@ import { createAgentRuntime, type AgentRuntime } from './server/agents/runtime.t
 import { agentsPlugin } from './server/agentsPlugin.ts';
 import { aiPlugin } from './server/aiPlugin.ts';
 import { confluencePlugin } from './server/confluencePlugin.ts';
+import { networkPlugin } from './server/networkPlugin.ts';
 import { seedWorkflowPlugin } from './server/seedWorkflowPlugin.ts';
 
 // A fixed port keeps the browser origin stable, so locally stored work is found again after a restart.
@@ -30,6 +31,7 @@ export default defineConfig(({ mode }) => {
       agentsPlugin(getRuntime),
       confluencePlugin({ store: () => getRuntime().confluence }),
       seedWorkflowPlugin(() => getRuntime().jobs),
+      networkPlugin({ router: () => getRuntime().network, confluence: () => getRuntime().confluence, confluenceFallback: env.CONFLUENCE_BASE_URL || undefined }),
     ],
     server: { port: PORT, strictPort: true },
     preview: { port: PORT, strictPort: true },

@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Connect, Plugin } from 'vite';
 import { isSameOrigin, readBody, send } from './http.ts';
 import type { AgentRuntime } from './agents/runtime.ts';
+import { agentHttp } from './network/httpClient.ts';
 import { claudeCodeVersion, ProviderError } from './providers.ts';
 
 interface Options {
@@ -55,7 +56,7 @@ async function handleStatus(req: IncomingMessage, res: ServerResponse, options: 
   let ollama: { reachable: boolean; models: string[]; error?: string } | undefined;
   if (ollamaUrl) {
     try {
-      const r = await fetch(new URL('/api/tags', checkHttpUrl(ollamaUrl)), { signal: AbortSignal.timeout(3000) });
+      const r = await agentHttp().fetch(new URL('/api/tags', checkHttpUrl(ollamaUrl)), { signal: AbortSignal.timeout(3000) });
       const data = (await r.json()) as { models?: { name: string }[] };
       ollama = { reachable: r.ok, models: (data.models ?? []).map((m) => m.name) };
     } catch (err) {

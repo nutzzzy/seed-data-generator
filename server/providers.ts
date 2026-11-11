@@ -2,15 +2,10 @@ import Anthropic from '@anthropic-ai/sdk';
 import { execFile, spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 
-export class ProviderError extends Error {
-  constructor(
-    readonly status: number,
-    message: string,
-  ) {
-    super(message);
-    this.name = 'ProviderError';
-  }
-}
+import { ProviderError } from './errors.ts';
+import { agentHttp, NetworkRouteError } from './network/httpClient.ts';
+
+export { ProviderError };
 
 export interface ProviderRequest {
   model: string;
@@ -21,13 +16,16 @@ export interface ProviderRequest {
   signal: AbortSignal;
 }
 
+/** The Anthropic SDK sends every request (including streams and retries) through the AgentHttpClient. */
+export const anthropicFetch = ((url: string | URL, init?: RequestInit) => agentHttp().fetch(url, init)) as typeof fetch;
+
 // Models that accept server-side refusal fallbacks in the "default" routing mode.
 const FALLBACK_MODELS = new Set(['claude-fable-5-1', 'claude-opus-5-5', 'claude-opus-5', 'claude-sonnet-5-5']);
 
 export async function generateWithAnthropic(req: ProviderRequest, apiKey?: string): Promise<string> {
   let client: Anthropic;
   try {
-    client = new Anthropic({ ...(apiKey ? { apiKey } : {}), timeout: req.timeoutMs, maxRetries: 1 });
+    client = new Anthropic({ ...(apiKey ? { apiKey } : {}), timeout: req.timeoutMs, maxRetries: 1, fetch: anthropicFetch });
   } catch {
     throw new ProviderError(401, 'کلید Anthropic پیدا نشد. ANTHROPIC_API_KEY را در .env.local وارد کنید و `npm run dev` را دوباره اجرا کنید.');
   }
@@ -62,6 +60,7 @@ export async function generateWithAnthropic(req: ProviderRequest, apiKey?: strin
     return text;
   } catch (err) {
     if (err instanceof ProviderError) throw err;
+    if (err instanceof Anthropic.APIConnectionError && err.cause instanceof NetworkRouteError) throw err.cause;
     if (err instanceof Anthropic.AuthenticationError) {
       throw new ProviderError(401, 'کلید Anthropic پذیرفته نشد. مقدار ANTHROPIC_API_KEY را در .env.local بررسی کنید.');
     }
@@ -86,7 +85,7 @@ interface OllamaRequest extends ProviderRequest {
 export async function generateWithOllama(req: OllamaRequest): Promise<string> {
   let res: Response;
   try {
-    res = await fetch(new URL('/api/chat', req.baseUrl), {
+    res = await agentHttp().fetch(new URL('/api/chat', req.baseUrl), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -102,7 +101,7 @@ export async function generateWithOllama(req: OllamaRequest): Promise<string> {
       signal: AbortSignal.any([req.signal, AbortSignal.timeout(req.timeoutMs)]),
     });
   } catch (err) {
-    if (req.signal.aborted) throw err;
+    if (req.signal.aborted || err instanceof NetworkRouteError) throw err;
     if (err instanceof Error && err.name === 'TimeoutError') throw new ProviderError(504, 'زمان پاسخ مدل محلی تمام شد.');
     throw new ProviderError(502, `Ollama در آدرس ${req.baseUrl} در دسترس نیست. آیا اجرا شده است؟`);
   }
@@ -145,10 +144,12 @@ export async function generateWithClaudeCode(req: ProviderRequest): Promise<stri
     ...(req.model ? ['--model', req.model] : []),
   ];
   const signal = AbortSignal.any([req.signal, AbortSignal.timeout(req.timeoutMs)]);
+  // With VPN routing on, only this child process gets proxy variables pointing at the VPN path.
+  const netEnv = await agentHttp().childEnv();
 
   const { code, stdout, stderr } = await new Promise<{ code: number | null; stdout: string; stderr: string }>((resolve, reject) => {
     // A neutral working directory keeps project files and instructions out of the request.
-    const child = spawn(claudeCodeBin(), args, { cwd: tmpdir(), signal, stdio: ['pipe', 'pipe', 'pipe'] });
+    const child = spawn(claudeCodeBin(), args, { cwd: tmpdir(), signal, stdio: ['pipe', 'pipe', 'pipe'], ...(Object.keys(netEnv).length ? { env: { ...process.env, ...netEnv } } : {}) });
     let out = '';
     let err = '';
     child.stdout.on('data', (d: Buffer) => (out += d.toString('utf8')));

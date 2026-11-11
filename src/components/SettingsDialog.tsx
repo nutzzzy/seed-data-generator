@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { agentsApi, type Agent, type AgentInput, type AgentList, type AgentTemplate, type ConnectionResult, type ProviderInfo } from '../lib/agentsClient';
 import type { Settings } from '../lib/types';
 import { useDialogs } from './Dialogs';
+import { NetworkSettings } from './NetworkSettings';
+import type { networkApi } from '../lib/networkClient';
 
 type Api = typeof agentsApi;
 
@@ -11,6 +13,7 @@ interface Props {
   onClose: () => void;
   /** Injected in tests; defaults to the local server endpoint. */
   api?: Api;
+  networkApi?: typeof networkApi;
 }
 
 const BASIC = 'basic';
@@ -27,7 +30,7 @@ function initialChoice(s: Settings): string {
  * Agent management: list, add, edit, enable / disable, remove and test agents, choose the default agent, and pick the
  * agent this section uses. Agents and their keys are stored by the local server, never in the browser.
  */
-export function SettingsDialog({ settings, onSave, onClose, api = agentsApi }: Props) {
+export function SettingsDialog({ settings, onSave, onClose, api = agentsApi, networkApi }: Props) {
   const { confirm } = useDialogs();
   const [data, setData] = useState<AgentList | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -201,6 +204,8 @@ export function SettingsDialog({ settings, onSave, onClose, api = agentsApi }: P
           <input type="number" min={10} max={600} value={timeoutSeconds} onChange={(e) => setTimeoutSeconds(Math.min(600, Math.max(10, Number(e.target.value) || 120)))} />
         </label>
       )}
+
+      <NetworkSettings api={networkApi} />
 
       {error && (
         <p className="status-line bad" role="alert">
