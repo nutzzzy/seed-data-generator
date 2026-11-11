@@ -60,7 +60,7 @@ const cell = (row: number, column: string) => screen.getByRole('textbox', { name
 async function generated(transport?: AiTransport) {
   const r = renderApp(transport);
   await r.user.click(screen.getByRole('button', { name: 'ساخت سریع (بدون Confluence)' }));
-  await screen.findByText(/2 Seed Data ساخته شد/);
+  await screen.findByText(/۲ Seed Data ساخته شد/);
   return r;
 }
 async function openAdvanced(user: ReturnType<typeof userEvent.setup>) {
@@ -95,7 +95,7 @@ describe('workspace', () => {
 
     await user.click(screen.getByRole('button', { name: 'استفاده از ساختار راهنمای QA Seed Data' }));
     await user.click(screen.getByRole('button', { name: 'ساخت سریع (بدون Confluence)' }));
-    await screen.findByText(/2 Seed Data ساخته شد/);
+    await screen.findByText(/۲ Seed Data ساخته شد/);
     expect(headerNames()).toEqual(COLUMNS);
   });
 });
@@ -150,7 +150,7 @@ describe('generation', () => {
     expect(env).toHaveClass('state-fail');
     expect(env).toHaveTextContent('ردیف 2');
     await user.click(screen.getByRole('button', { name: 'بررسی با Checklist' }));
-    expect(await screen.findByText('1 خطا پیدا شد.')).toBeInTheDocument();
+    expect(await screen.findByText('۱ خطا پیدا شد.')).toBeInTheDocument();
     await waitForSave((w) => Object.values(w.table!.rows[1].cells).includes('dev'));
   });
 
@@ -205,12 +205,12 @@ describe('generation', () => {
     await user.type(name, 'Food Partner UAT{Enter}');
     await user.click(screen.getByRole('button', { name: 'پاک کردن جدول' }));
     await user.click(within(dialog()).getByRole('button', { name: 'پاک کردن' }));
-    expect(screen.getByText('هنوز Seed Dataای ساخته نشده است.')).toBeInTheDocument();
+    expect(screen.getByText('هنوز هیچ Seed Data ساخته نشده است.')).toBeInTheDocument();
     await waitForSave((w) => w.table === null && w.savedTables.length === 1);
 
     unmount();
     const again = renderApp();
-    await again.user.click(screen.getByText('Seed Dataهای ذخیره‌شده (1)'));
+    await again.user.click(screen.getByText('جدول‌های ذخیره‌شده (۱)'));
     await again.user.click(screen.getByRole('button', { name: 'باز کردن' }));
     expect(cell(2, 'Seed Data ID')).toHaveValue('SD-FP-ORDER-PENDING-001');
   });
@@ -318,7 +318,7 @@ describe('Confluence and Zephyr', () => {
     const { user } = await generated();
     const items = captureClipboard();
     await user.click(screen.getByRole('button', { name: /کپی برای Confluence — هر Seed Data جدا/ }));
-    expect(await screen.findByText('Seed Dataها برای Confluence کپی شد.')).toBeInTheDocument();
+    expect(await screen.findByText('بخش‌های Seed Data برای Confluence کپی شد.')).toBeInTheDocument();
     const html = await items[0]['text/html'].text();
     expect(html).toMatch(/^<h2>SD-FP-VENDOR-ACTIVE-001<\/h2>\n<table><tbody><tr><th>Seed Data ID<\/th><td>SD-FP-VENDOR-ACTIVE-001<\/td><\/tr><tr><th>Name<\/th>/);
     expect(html).toContain('<h3 dir="auto">Data</h3><table><tbody><tr><th>Field</th><th>Value</th></tr><tr><td>Vendor ID</td><td>100977</td></tr>');

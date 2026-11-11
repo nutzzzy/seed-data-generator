@@ -23,6 +23,7 @@ import type { GeneratedTable, Standard, Template, Workspace } from '../lib/types
 import { validateTable } from '../lib/validate';
 import { providerLabel } from '../lib/providerLabel';
 import { confluenceApi, type ConfluenceStatus } from '../lib/seedJobsClient';
+import { fa } from '../lib/bidi';
 
 interface Props {
   /** Injected in tests; defaults to the local server endpoint. */
@@ -35,7 +36,7 @@ interface Props {
 
 type Named = { id: string; name: string; updatedAt: string };
 
-const count = (n: number, noun: string) => `${n} ${noun}`;
+const count = (n: number, noun: string) => `${fa(n)} ${noun}`;
 
 export function SeedDataApp({ transport, modeSwitch, apis }: Props) {
   const [loaded] = useState(() => loadWorkspace());
@@ -165,7 +166,7 @@ export function SeedDataApp({ transport, modeSwitch, apis }: Props) {
     }
     if (ws.table && ws.table.rows.length > 0) {
       return confirm({
-        title: 'Seed Dataهای فعلی جایگزین شوند؟',
+        title: 'جدول Seed Data فعلی جایگزین شود؟',
         message: 'جدول فعلی با نتیجهٔ جدید جایگزین می‌شود. اگر می‌خواهید نگهش دارید، اول «ذخیره» را بزنید. اگر ساخت ناموفق باشد، جدول فعلی دست نمی‌خورد.',
         confirmLabel: 'ساخت دوباره',
       });
@@ -195,7 +196,7 @@ export function SeedDataApp({ transport, modeSwitch, apis }: Props) {
     }
     if (ws.table && ws.table.rows.length > 0) {
       const ok = await confirm({
-        title: 'Seed Dataهای فعلی جایگزین شوند؟',
+        title: 'جدول Seed Data فعلی جایگزین شود؟',
         message: 'جدول فعلی با نتیجهٔ جدید جایگزین می‌شود. اگر می‌خواهید نگهش دارید، اول «ذخیره» را بزنید. اگر ساخت ناموفق باشد، جدول فعلی دست نمی‌خورد.',
         confirmLabel: 'ساخت دوباره',
       });
@@ -235,7 +236,7 @@ export function SeedDataApp({ transport, modeSwitch, apis }: Props) {
 
   const saveTable = async () => {
     if (!ws.table) return;
-    const name = await prompt({ title: 'ذخیرهٔ Seed Dataها', label: 'نام', initialValue: `Seed Data – ${new Date().toLocaleDateString('fa-IR')}`, confirmLabel: 'ذخیره' });
+    const name = await prompt({ title: 'ذخیرهٔ جدول Seed Data', label: 'نام', initialValue: `Seed Data – ${new Date().toLocaleDateString('fa-IR')}`, confirmLabel: 'ذخیره' });
     if (!name) return;
     update((w) => ({ savedTables: [...w.savedTables, { id: newId('tbl'), name, table: structuredClone(w.table!), savedAt: nowIso() }] }));
     notify('success', `«${name}» ذخیره شد.`);
@@ -278,7 +279,7 @@ export function SeedDataApp({ transport, modeSwitch, apis }: Props) {
   };
 
   const clearTable = async () => {
-    const ok = await confirm({ title: 'جدول پاک شود؟', message: 'Seed Dataهای ساخته‌شده از صفحه پاک می‌شوند. جدول‌های ذخیره‌شده تغییری نمی‌کنند.', confirmLabel: 'پاک کردن', danger: true });
+    const ok = await confirm({ title: 'جدول پاک شود؟', message: 'ردیف‌های Seed Data ساخته‌شده از صفحه پاک می‌شوند. جدول‌های ذخیره‌شده تغییری نمی‌کنند.', confirmLabel: 'پاک کردن', danger: true });
     if (ok) setTable(null);
   };
 
@@ -290,7 +291,7 @@ export function SeedDataApp({ transport, modeSwitch, apis }: Props) {
   const sourceLabel = { ai: 'ساخته‌شده با AI', basic: 'ساخته‌شده به‌صورت آفلاین', manual: 'دستی' } as const;
 
   return (
-    <div className="app">
+    <div className="app" dir="rtl">
       <header className="topbar">
         <div className="brand">
           <BrandLogo />
@@ -322,7 +323,7 @@ export function SeedDataApp({ transport, modeSwitch, apis }: Props) {
       <main>
         <GuidePanel />
 
-        <Section step={1} title="نیازمندی‌ها و یادداشت‌ها" hint="داده‌هایی را که تست‌ها لازم دارند توضیح دهید: Feature، Entityها، وضعیت‌ها (Status)، محیط (Environment)، Test Caseهای مرتبط و روش ساخت.">
+        <Section step={1} title="نیازمندی‌ها و یادداشت‌ها" hint="داده‌هایی را که تست‌ها لازم دارند توضیح دهید: Feature، Entity، وضعیت‌ها (Status)، محیط (Environment)، تست‌کیس‌های مرتبط و روش ساخت.">
           <textarea
             className="input-area"
             dir="rtl"
@@ -408,10 +409,10 @@ export function SeedDataApp({ transport, modeSwitch, apis }: Props) {
           )}
         </Section>
 
-        <Section step={2} title="بررسی و ویرایش Seed Dataها" hint="هر ردیف یک Seed Data است و همهٔ سلول‌ها قابل ویرایش‌اند. تغییرات اینجا روی استاندارد و ساختار ذخیره‌شده اثری ندارد." ref={tableRef}>
+        <Section step={2} title="بررسی و ویرایش Seed Data" hint="هر ردیف یک Seed Data است و همهٔ سلول‌ها قابل ویرایش‌اند. تغییرات اینجا روی استاندارد و ساختار ذخیره‌شده اثری ندارد." ref={tableRef}>
           {!ws.table ? (
             <div className="empty big">
-              <p>هنوز Seed Dataای ساخته نشده است.</p>
+              <p>هنوز هیچ Seed Data ساخته نشده است.</p>
               <p className="hint">نیازمندی‌ها را در مرحلهٔ ۱ وارد کنید و «ساخت Seed Data» را بزنید.</p>
               {ws.savedTables.length > 0 && <SavedTablesPicker tables={ws.savedTables} onOpen={openSavedTable} onDelete={deleteSavedTable} />}
             </div>
@@ -437,7 +438,7 @@ export function SeedDataApp({ transport, modeSwitch, apis }: Props) {
                   </span>
                 )}
                 <span className="hint grow-right">
-                  {count(ws.table.rows.length, 'Seed Data')} · {sourceLabel[ws.table.source]}
+                  {count(ws.table.rows.length, 'ردیف')} · {sourceLabel[ws.table.source]}
                 </span>
               </div>
               <TableEditor table={ws.table} issues={validation ? [...validation.errors, ...validation.warnings] : []} onChange={setTable} />
@@ -447,7 +448,7 @@ export function SeedDataApp({ transport, modeSwitch, apis }: Props) {
           )}
         </Section>
 
-        <Section step={3} title="انتقال به Confluence و Zephyr" hint="جزئیات Seed Data در Confluence نگه داشته می‌شود و Test Caseهای Zephyr فقط به Seed Data ID ارجاع می‌دهند.">
+        <Section step={3} title="انتقال به Confluence و Zephyr" hint="جزئیات Seed Data در Confluence نگه داشته می‌شود و تست‌کیس‌های Zephyr فقط به Seed Data ID ارجاع می‌دهند.">
           {ws.table ? (
             <ExportPanel table={ws.table} name={ws.templateDraft.name || 'seed-data'} hasErrors={!!validation && !validation.ok} />
           ) : (
@@ -562,12 +563,12 @@ function Section({ step, title, hint, children, ref }: SectionProps) {
 function SavedTablesPicker({ tables, onOpen, onDelete }: { tables: Workspace['savedTables']; onOpen: (id: string) => void; onDelete: (id: string) => void }) {
   return (
     <details className="saved-tables">
-      <summary>Seed Dataهای ذخیره‌شده ({tables.length})</summary>
+      <summary>جدول‌های ذخیره‌شده ({fa(tables.length)})</summary>
       <ul>
         {tables.map((t) => (
           <li key={t.id}>
             <span>
-              {t.name} <small className="hint">· {count(t.table.rows.length, 'ردیف')} · {new Date(t.savedAt).toLocaleString('fa-IR')}</small>
+              <bdi>{t.name}</bdi> <small className="hint">· {count(t.table.rows.length, 'ردیف')} · {new Date(t.savedAt).toLocaleString('fa-IR')}</small>
             </span>
             <span className="btn-group">
               <button type="button" className="btn btn-sm" onClick={() => onOpen(t.id)}>
@@ -592,7 +593,7 @@ function ConfluenceDialog({ onClose, api = confluenceApi }: { onClose: () => voi
   }, [api]);
   return (
     <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="dialog wide" role="dialog" aria-modal="true" aria-labelledby="confluence-title" onKeyDown={(e) => e.key === 'Escape' && onClose()}>
+      <div className="dialog wide" dir="rtl" role="dialog" aria-modal="true" aria-labelledby="confluence-title" onKeyDown={(e) => e.key === 'Escape' && onClose()}>
         <h2 id="confluence-title">تنظیمات Confluence</h2>
         {error && <p className="status-line bad">✗ {error}</p>}
         {status ? <ConfluenceSettings status={status} onChange={setStatus} api={api} /> : !error && <p className="status-line">در حال خواندن…</p>}

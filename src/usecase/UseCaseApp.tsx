@@ -12,6 +12,7 @@ import { generateFlowchart, generateUseCase } from './generate';
 import { flowchartFromUseCase } from './mermaid';
 import { blankSection, moveItem, newOverviewDoc, newUseCaseDoc, touch } from './model';
 import { CONFLUENCE_REFERENCE_URL } from './rules';
+import { rtl } from '../lib/bidi';
 import { loadUcWorkspace, saveUcWorkspace } from './storage';
 import type { ConfluenceSource, DiagramSection, OverviewDoc, UcDoc, UcIssue, UcWorkspace, UseCaseDoc } from './types';
 import { validateDoc, validateSection } from './validate';
@@ -227,11 +228,11 @@ export function UseCaseApp({ transport, modeSwitch }: Props) {
           <div className="stack">
             <textarea
               className="input-area"
-              dir="auto"
+              dir="rtl"
               rows={4}
               value={source.preview}
               aria-label="لینک یا محتوای صفحهٔ Confluence"
-              placeholder={`لینک صفحه، مثل ${CONFLUENCE_REFERENCE_URL}\nیا: صفحه را در Confluence باز کنید، Ctrl+A و Ctrl+C بزنید و اینجا Paste کنید.`}
+              placeholder={rtl(`لینک صفحه، مثل: ${CONFLUENCE_REFERENCE_URL}\nیا: صفحه را در Confluence باز کنید، Ctrl+A و Ctrl+C بزنید و اینجا Paste کنید.`)}
               onPaste={(e) => {
                 const html = e.clipboardData.getData('text/html');
                 if (!html) return;
@@ -263,7 +264,7 @@ export function UseCaseApp({ transport, modeSwitch }: Props) {
               value={ws.input}
               onChange={(e) => update({ input: e.target.value })}
               aria-label="نیازمندی‌های Use Case"
-              placeholder="مثلاً: Vendor از صفحه کوپن‌ها روی «ایجاد کوپن جدید» کلیک می‌کند… درصد تخفیف بین ۵ تا ۹۵ و مضرب ۵…"
+              placeholder={rtl('مثلاً: Vendor از صفحه کوپن‌ها روی «ایجاد کوپن جدید» کلیک می‌کند… درصد تخفیف بین ۵ تا ۹۵ و مضرب ۵…')}
             />
             <div className="row-between">
               <span className="hint">با {providerLabel(ws.settings)}. اطلاعاتی که در متن نیست ساخته نمی‌شود.</span>
@@ -301,7 +302,15 @@ export function UseCaseApp({ transport, modeSwitch }: Props) {
                 <li key={d.id}>
                   <button type="button" className="doc-open" onClick={() => open(d.id)}>
                     <span className="doc-kind">{d.kind === 'usecase' ? 'Use Case' : 'نمودارها'}</span>
-                    <strong dir="auto">{d.kind === 'usecase' && d.useCase.ucId ? `${d.useCase.ucId} — ${d.name}` : d.name}</strong>
+                    <strong>
+                      {d.kind === 'usecase' && d.useCase.ucId ? (
+                        <>
+                          <bdi>{d.useCase.ucId}</bdi> — <bdi>{d.name}</bdi>
+                        </>
+                      ) : (
+                        <bdi>{d.name}</bdi>
+                      )}
+                    </strong>
                     <small className="hint">
                       {d.kind === 'overview' && `${fa(d.sections.length)} بخش · `}
                       {new Date(d.updatedAt).toLocaleDateString('fa-IR')}
@@ -340,7 +349,9 @@ export function UseCaseApp({ transport, modeSwitch }: Props) {
         </button>
         <div className="doc-title">
           <button type="button" className="bare-btn" onClick={renameDoc} title="تغییر نام">
-            <strong dir="auto">{doc.name}</strong> <span className="hint">✎</span>
+            <strong>
+              <bdi>{doc.name}</bdi>
+            </strong> <span className="hint">✎</span>
           </button>
           {doc.source?.url && (
             <a className="hint" href={doc.source.url} target="_blank" rel="noreferrer">
@@ -396,7 +407,7 @@ export function UseCaseApp({ transport, modeSwitch }: Props) {
   );
 
   return (
-    <div className="app">
+    <div className="app" dir="rtl">
       <header className="topbar">
         <button type="button" className="brand bare-btn" onClick={() => setOpenId(null)} title="صفحهٔ اصلی">
           <UseCaseLogo />
@@ -534,15 +545,15 @@ function OverviewView({ doc, index, onIndex, useCases, onChange, confirmDelete }
     <div className="overview">
       <nav className="card section-nav" aria-label="بخش‌های صفحه">
         <h3 className="nav-title">بخش‌ها</h3>
-        <ol dir="ltr">
+        <ol dir="rtl">
           {doc.sections.map((s, i) => {
             const errors = errorCount(validateSection(s, i + 1));
             const changed = s.publishedMermaid !== undefined && s.mermaid !== s.publishedMermaid;
             return (
               <li key={s.id}>
                 <button type="button" aria-current={i === index ? 'true' : undefined} onClick={() => onIndex(i)}>
-                  <span dir="ltr">
-                    {i + 1}. {s.heading || 'بدون عنوان'}
+                  <span>
+                    {fa(i + 1)}. <bdi>{s.heading || 'بدون عنوان'}</bdi>
                   </span>
                   {changed && <span className="dot on" title="تغییر کرده" />}
                   {errors > 0 && <span className="badge bad">{fa(errors)}</span>}
@@ -566,7 +577,7 @@ function OverviewView({ doc, index, onIndex, useCases, onChange, confirmDelete }
             <option value="">+ از فلوچارت یک Use Case…</option>
             {useCases.map((d) => (
               <option key={d.id} value={d.id}>
-                {d.useCase.ucId || d.name}
+                {rtl(d.useCase.ucId || d.name)}
               </option>
             ))}
           </select>
@@ -579,8 +590,8 @@ function OverviewView({ doc, index, onIndex, useCases, onChange, confirmDelete }
         ) : (
           <>
             <div className="row-between">
-              <h3 dir="ltr">
-                {index + 1}. {section.heading || 'بدون عنوان'}
+              <h3>
+                {fa(index + 1)}. <bdi>{section.heading || 'بدون عنوان'}</bdi>
               </h3>
               <div className="btn-group">
                 <button type="button" className="btn btn-sm" disabled={index === 0} onClick={() => setSections(moveItem(doc.sections, index, index - 1), index - 1)} aria-label="انتقال به بالا">

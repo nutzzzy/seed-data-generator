@@ -1,6 +1,7 @@
 import { figureCaption, imageFileOf } from '../model';
 import type { DiagramSection } from '../types';
 import { MermaidPreview } from './MermaidPreview';
+import { rtl } from '../../lib/bidi';
 
 interface Props {
   section: DiagramSection;
@@ -18,11 +19,11 @@ export function DiagramEditor({ section, number, onChange, onNumberChange }: Pro
       <div className="diagram-head">
         <label className="field">
           <span>عنوان (Domain — Service)</span>
-          <input dir="ltr" value={section.heading} onChange={(e) => set('heading', e.target.value)} placeholder="Coupon — Coupon Service" />
+          <input dir="rtl" value={section.heading} onChange={(e) => set('heading', e.target.value)} placeholder="Coupon — Coupon Service" />
         </label>
         <label className="field">
           <span>Description</span>
-          <textarea dir="auto" rows={2} value={section.description} onChange={(e) => set('description', e.target.value)} placeholder="چه چیزی را پوشش می‌دهد، از کجا وارد می‌شود و به کدام Domain می‌رود." />
+          <textarea dir="rtl" rows={2} value={section.description} onChange={(e) => set('description', e.target.value)} placeholder={rtl('چه چیزی را پوشش می‌دهد، از کجا وارد می‌شود و به کدام Domain می‌رود.')} />
         </label>
       </div>
       <div className="diagram-grid">
@@ -40,15 +41,19 @@ export function DiagramEditor({ section, number, onChange, onNumberChange }: Pro
         </label>
         <div className="field">
           <span>
-            پیش‌نمایش <small dir="ltr">{figureCaption(number, section.heading || '…')}</small>
+            پیش‌نمایش <small>
+              <bdi dir="ltr">{figureCaption(number, section.heading || '…')}</bdi>
+            </small>
           </span>
           <MermaidPreview source={section.mermaid} />
         </div>
       </div>
       <details className="diagram-settings">
         <summary>
-          تصویر در Confluence: <code dir="ltr">{imageFileOf(section, number)}</code>
-          {onNumberChange && <> · شمارهٔ بخش: {number}</>}
+          تصویر در Confluence: <bdi dir="ltr">
+            <code>{imageFileOf(section, number)}</code>
+          </bdi>
+          {onNumberChange && <> · شمارهٔ بخش: {number.toLocaleString('fa-IR')}</>}
         </summary>
         <div className="row-between">
           <label className="field grow">

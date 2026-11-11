@@ -26,7 +26,7 @@ export function StandardEditor({ standard, onChange }: Props) {
           <span>
             {f.label} <small>{f.hint}</small>
           </span>
-          <textarea dir="auto" rows={f.rows} value={standard[f.key] as string} onChange={(e) => set(f.key, e.target.value)} />
+          <textarea dir="rtl" rows={f.rows} value={standard[f.key] as string} onChange={(e) => set(f.key, e.target.value)} />
         </label>
       ))}
     </div>

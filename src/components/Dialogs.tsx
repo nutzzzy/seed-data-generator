@@ -93,6 +93,7 @@ function DialogView({ state, close }: { state: DialogState; close: () => void })
     <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && cancel()}>
       <div
         className="dialog"
+        dir="rtl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="dialog-title"

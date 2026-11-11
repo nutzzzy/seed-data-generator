@@ -25,7 +25,13 @@ export function UcIssuesPanel({ issues }: { issues: UcIssue[] }) {
         {issues.map((i, n) => (
           <li key={n} className={`issue-${i.level}`}>
             <b>{LEVEL[i.level]}</b>
-            {i.where && <small> · {i.where}</small>}: {i.message}
+            {i.where && (
+              <small>
+                {' · '}
+                <bdi>{i.where}</bdi>
+              </small>
+            )}
+            : <bdi>{i.message}</bdi>
           </li>
         ))}
       </ul>

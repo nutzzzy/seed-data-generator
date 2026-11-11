@@ -40,7 +40,7 @@ export default function App({ transport }: Props) {
   }, [mode]);
 
   const modeSwitch = (
-    <nav className="mode-switch" aria-label="بخش‌ها" dir="ltr">
+    <nav className="mode-switch" aria-label="بخش‌ها" dir="rtl">
       <button type="button" aria-pressed={mode === 'seed'} onClick={() => setMode('seed')}>
         snapp seed!
       </button>

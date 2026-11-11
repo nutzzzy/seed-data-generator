@@ -9,7 +9,7 @@ export function GuidePanel() {
       <div className="guide-body">
         <p className="principle">
           <b>Test Case</b> می‌گوید چه چیزی را تست کنیم. <b>Seed Data</b> می‌گوید تست را با چه داده‌ای اجرا کنیم. Zephyr محل اجرای Test Case و
-          ثبت Test Data ساده است و Confluence محل نگهداری Seed Dataهای مشترک، پیچیده و قابل استفادهٔ مجدد.
+          ثبت Test Data ساده است و Confluence محل نگهداری Seed Data مشترک، پیچیده و قابل استفادهٔ مجدد.
         </p>
 
         <div className="guide-grid">

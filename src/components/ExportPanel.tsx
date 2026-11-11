@@ -36,11 +36,11 @@ export function ExportPanel({ table, name, hasErrors }: Props) {
           detail="پیشنهادی. طبق راهنمای Seed Data (نسخهٔ ۴): عنوان = Seed Data ID، جدول Metadata (برای Page Properties) و بعد Purpose، Data (جدول Field | Value)، Preconditions، How to Create / Verify، Reset / Cleanup و Used By."
           primary
           disabled={disabled}
-          onClick={() => copy('Seed Dataها برای Confluence', () => copyRich(toSeedDataHtml(table), toSeedDataText(table)), toSeedDataHtml(table))}
+          onClick={() => copy('بخش‌های Seed Data برای Confluence', () => copyRich(toSeedDataHtml(table), toSeedDataText(table)), toSeedDataHtml(table))}
         />
         <ExportOption
           title="کپی برای Confluence — یک جدول"
-          detail="همهٔ Seed Dataها در یک جدول، با همین ستون‌ها و همین ترتیب."
+          detail="همهٔ ردیف‌های Seed Data در یک جدول، با همین ستون‌ها و همین ترتیب."
           disabled={disabled}
           onClick={() => copy('جدول', () => copyRich(toHtml(table), toTsv(table)), toHtml(table))}
         />

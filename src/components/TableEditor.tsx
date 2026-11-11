@@ -1,6 +1,7 @@
 import { blankColumn, blankRow, moveItem } from '../lib/model';
 import type { GeneratedTable, Issue } from '../lib/types';
 import { useDialogs } from './Dialogs';
+import { fa } from '../lib/bidi';
 
 interface Props {
   table: GeneratedTable;
@@ -53,7 +54,7 @@ export function TableEditor({ table, issues, onChange }: Props) {
   const moveColumn = (from: number, to: number) => onChange({ ...table, columns: moveItem(table.columns, from, to) });
 
   return (
-    <div className="table-wrap" dir="ltr">
+    <div className="table-wrap" dir="rtl">
       <table className="grid">
         <thead>
           <tr>
@@ -65,11 +66,11 @@ export function TableEditor({ table, issues, onChange }: Props) {
                 <div className="th-inner">
                   <input value={col.name} aria-label={`عنوان ستون ${i + 1}`} onChange={(e) => renameColumn(col.id, e.target.value)} />
                   <div className="btn-group">
-                    <button type="button" className="icon-btn" aria-label={`انتقال ستون ${col.name} به چپ`} disabled={i === 0} onClick={() => moveColumn(i, i - 1)}>
-                      ←
-                    </button>
-                    <button type="button" className="icon-btn" aria-label={`انتقال ستون ${col.name} به راست`} disabled={i === table.columns.length - 1} onClick={() => moveColumn(i, i + 1)}>
+                    <button type="button" className="icon-btn" aria-label={`انتقال ستون ${col.name} به راست`} disabled={i === 0} onClick={() => moveColumn(i, i - 1)}>
                       →
+                    </button>
+                    <button type="button" className="icon-btn" aria-label={`انتقال ستون ${col.name} به چپ`} disabled={i === table.columns.length - 1} onClick={() => moveColumn(i, i + 1)}>
+                      ←
                     </button>
                     <button type="button" className="icon-btn danger" aria-label={`حذف ستون ${col.name}`} onClick={() => removeColumn(col.id)}>
                       ×
@@ -96,7 +97,7 @@ export function TableEditor({ table, issues, onChange }: Props) {
           {table.rows.map((row, r) => (
             <tr key={row.id}>
               <th scope="row" className="row-num">
-                {r + 1}
+                {fa(r + 1)}
               </th>
               {table.columns.map((col) => (
                 <td key={col.id} className={levelAt(r, col.id)}>

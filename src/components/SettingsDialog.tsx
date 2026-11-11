@@ -228,7 +228,7 @@ export function SettingsDialog({ settings, onSave, onClose, api = agentsApi, net
 function Shell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="dialog wide" role="dialog" aria-modal="true" aria-labelledby="settings-title" onKeyDown={(e) => e.key === 'Escape' && onClose()}>
+      <div className="dialog wide" dir="rtl" role="dialog" aria-modal="true" aria-labelledby="settings-title" onKeyDown={(e) => e.key === 'Escape' && onClose()}>
         <h2 id="settings-title">{title}</h2>
         {children}
       </div>

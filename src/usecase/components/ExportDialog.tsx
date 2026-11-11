@@ -147,7 +147,7 @@ export function ExportDialog({ doc, errors, sectionIndex, initialTarget = 'page'
 
   return (
     <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && !busy && onClose()}>
-      <div className="dialog wide export-dialog" role="dialog" aria-modal="true" aria-labelledby="export-title">
+      <div className="dialog wide export-dialog" dir="rtl" role="dialog" aria-modal="true" aria-labelledby="export-title">
         <div className="row-between">
           <h2 id="export-title">خروجی برای Confluence</h2>
           <button type="button" className="icon-btn" onClick={onClose} aria-label="بستن">
@@ -191,7 +191,7 @@ export function ExportDialog({ doc, errors, sectionIndex, initialTarget = 'page'
             <button type="button" className="export-option" onClick={publish} disabled={!!busy}>
               <strong>{busy === 'انتشار' ? 'در حال انتشار…' : 'انتشار مستقیم در همان صفحه'}</strong>
               <span>
-                «{doc.source!.title}» · نسخهٔ {doc.source!.version}. اگر صفحه بعد از ایمپورت تغییر کرده باشد، چیزی نوشته نمی‌شود.
+                «<bdi>{doc.source!.title}</bdi>» · نسخهٔ {doc.source!.version}. اگر صفحه بعد از ایمپورت تغییر کرده باشد، چیزی نوشته نمی‌شود.
               </span>
             </button>
           )}

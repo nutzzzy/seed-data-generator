@@ -104,9 +104,9 @@ const CHECKS: CheckDef[] = [
   { label: 'Preconditions شرط‌های لازم را دارد', fields: ['preconditions'], fail: ['required'], review: ['not-specified'] },
   { label: 'How to Create / Verify پر شده است', fields: ['howToCreate'], fail: ['required'], review: ['not-specified'] },
   { label: 'Reset / Cleanup و Dependencies پر شده‌اند', fields: ['reset', 'dependencies'], review: ['not-specified'] },
-  { label: 'Used By کلید Zephyr Test Caseها را دارد', fields: ['usedBy'], fail: ['required'], review: ['not-specified'] },
+  { label: 'Used By کلید تست‌کیس‌های Zephyr را دارد', fields: ['usedBy'], fail: ['required'], review: ['not-specified'] },
   { label: 'اطلاعات حساس ثبت نشده است', anyColumn: true, fail: ['forbidden'] },
-  { label: 'قبل از ایجاد، Seed Dataهای موجود در Confluence جستجو شده‌اند', manual: true },
+  { label: 'قبل از ایجاد، Seed Data موجود در Confluence جستجو شده است', manual: true },
 ];
 
 /** Scores the guide's checklist from the deterministic validation result. */

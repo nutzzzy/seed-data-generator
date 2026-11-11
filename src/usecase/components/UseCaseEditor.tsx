@@ -1,6 +1,7 @@
 import { blankExtension, moveItem } from '../model';
 import { UC_HEADINGS, UC_LABELS } from '../rules';
 import type { Extension, UseCase } from '../types';
+import { rtl } from '../../lib/bidi';
 
 interface Props {
   useCase: UseCase;
@@ -9,11 +10,11 @@ interface Props {
 
 const OUTLINE_HINT = 'در فهرست‌ها هر خط یک مورد است. زیرمورد: دو فاصله در ابتدای خط. زیرعنوان: «### ». شکست خط داخل یک مورد: « \\» در انتهای خط.';
 
-const HEADER: { key: 'ucId' | 'title' | 'scope' | 'primaryActor'; placeholder: string; dir: 'ltr' | 'auto' }[] = [
-  { key: 'ucId', placeholder: 'UC-Creates-New-Coupon', dir: 'ltr' },
-  { key: 'title', placeholder: 'Vendor Creates a New Coupon', dir: 'ltr' },
-  { key: 'scope', placeholder: 'Coupon', dir: 'ltr' },
-  { key: 'primaryActor', placeholder: 'Vendor', dir: 'ltr' },
+const HEADER: { key: 'ucId' | 'title' | 'scope' | 'primaryActor'; placeholder: string; dir: 'ltr' | 'rtl' }[] = [
+  { key: 'ucId', placeholder: 'UC-Creates-New-Coupon', dir: 'rtl' },
+  { key: 'title', placeholder: 'Vendor Creates a New Coupon', dir: 'rtl' },
+  { key: 'scope', placeholder: 'Coupon', dir: 'rtl' },
+  { key: 'primaryActor', placeholder: 'Vendor', dir: 'rtl' },
 ];
 
 const SECTIONS: { key: 'preconditions' | 'postconditions' | 'mainScenario' | 'exceptions' | 'specialRequirements'; hint: string; rows: number }[] = [
@@ -67,7 +68,7 @@ export function UseCaseEditor({ useCase, onChange }: Props) {
             <div className="row-between">
               <label className="field grow">
                 <span>عنوان Flow {(i + 1).toLocaleString('fa-IR')}</span>
-                <input dir="rtl" value={e.title} onChange={(ev) => setExt(i, { title: ev.target.value })} placeholder="ساخت کوپن از طریق لینک پیامک" />
+                <input dir="rtl" value={e.title} onChange={(ev) => setExt(i, { title: ev.target.value })} placeholder={rtl('ساخت کوپن از طریق لینک پیامک')} />
               </label>
               <div className="btn-group">
                 <button type="button" className="btn btn-sm" disabled={i === 0} onClick={() => set('extensions', moveItem(useCase.extensions, i, i - 1))} aria-label={`بالا بردن Flow ${i + 1}`}>
@@ -99,7 +100,9 @@ export function UseCaseEditor({ useCase, onChange }: Props) {
       {outlineField('specialRequirements')}
       <label className="field">
         <span>
-          {UC_HEADINGS.relatedUseCases} <small>هر خط یک UC ID؛ برای لینک: UC-Coupon-03 | https://confluence…</small>
+          {UC_HEADINGS.relatedUseCases} <small>
+            هر خط یک UC ID؛ برای لینک: <bdi dir="ltr">UC-Coupon-03 | https://confluence…</bdi>
+          </small>
         </span>
         <textarea dir="ltr" rows={3} value={useCase.relatedUseCases} onChange={(e) => set('relatedUseCases', e.target.value)} />
       </label>

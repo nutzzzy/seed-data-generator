@@ -93,10 +93,10 @@ describe('snapp usecase section', () => {
     expect(await screen.findByText(/صفحهٔ نمودارها با ۲ بخش ایمپورت شد/)).toBeInTheDocument();
     const nav = screen.getByRole('navigation', { name: 'بخش‌های صفحه' });
     expect(within(nav).getAllByRole('button').map((b) => b.textContent)).toEqual(
-      expect.arrayContaining(['1. Vendor User / Profile — Vendor Registration Service', '2. Coupon — Coupon Service']),
+      expect.arrayContaining(['۱. Vendor User / Profile — Vendor Registration Service', '۲. Coupon — Coupon Service']),
     );
     // One section at a time: section 2 opens on click.
-    await user.click(within(nav).getByRole('button', { name: /2\. Coupon/ }));
+    await user.click(within(nav).getByRole('button', { name: /۲\. Coupon/ }));
     expect((screen.getByLabelText('کد Mermaid بخش 2') as HTMLTextAreaElement).value).toContain('CouponSvc --> CreateCoupon');
     // Export dialog offers the main actions first.
     await user.click(screen.getByRole('button', { name: 'خروجی برای Confluence' }));

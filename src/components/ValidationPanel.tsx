@@ -2,6 +2,7 @@ import type { TableData } from '../lib/exporters';
 import { seedChecklist, type CheckState } from '../lib/seedData';
 import type { Issue } from '../lib/types';
 import type { ValidationResult } from '../lib/validate';
+import { fa } from '../lib/bidi';
 
 interface Props {
   table: TableData;
@@ -56,7 +57,7 @@ export function ValidationPanel({ table, result, notes }: Props) {
       {(errors.length > 0 || warnings.length > 0) && (
         <details className="findings" open={errors.length > 0}>
           <summary>
-            جزئیات: {errors.length} خطا، {warnings.length} مورد برای بررسی
+            جزئیات: {fa(errors.length)} خطا، {fa(warnings.length)} مورد برای بررسی
           </summary>
           {errors.length > 0 && <IssueList title="خطاها" items={errors} level="error" />}
           {warnings.length > 0 && <IssueList title="برای بررسی" items={warnings} level="warning" />}
@@ -65,12 +66,12 @@ export function ValidationPanel({ table, result, notes }: Props) {
       {notes.length > 0 && <IssueList title="نکاتی که هنگام ساخت مشخص شد" items={notes} level="warning" />}
       {manualChecks.length > 0 && (
         <details>
-          <summary>قوانین استاندارد برای بررسی دستی ({manualChecks.length})</summary>
+          <summary>قوانین استاندارد برای بررسی دستی ({fa(manualChecks.length)})</summary>
           <ul className="checklist">
             {manualChecks.map((c, i) => (
               <li key={i}>
                 <label className="check">
-                  <input type="checkbox" /> <span dir="auto">{c}</span>
+                  <input type="checkbox" /> <bdi>{c}</bdi>
                 </label>
               </li>
             ))}
