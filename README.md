@@ -3,6 +3,7 @@
 Turn requirements and notes into Seed Data that follows the team's QA Seed Data Guide (v4, Confluence page QC / 247858019), then publish or copy it into Confluence and reference it from Zephyr. The UI is Persian and right-to-left.
 
 - [English](#run)
+- [How it works](#how-it-works-in-brief) · [Dependencies](#dependencies)
 - [راهنمای فارسی اجرا روی لوکال](#راهنمای-اجرا-روی-لوکال)
 
 ## Run
@@ -16,6 +17,49 @@ npm run dev
 ```
 
 Open http://localhost:5173. Your work is saved in this browser's local storage (the fixed port keeps it findable after restarts).
+
+## How it works (in brief)
+
+One local app with two sections, served by the Vite dev server. The browser runs the React UI; the dev server's plugins (`server/`) are the backend that talks to AI agents and Confluence, so tokens and API keys never reach the browser.
+
+1. **Input** – requirements/notes (Seed Data) or a Confluence page (Use Case).
+2. **Context** – the backend reads the Confluence page tree and finds existing Seed Data; the selected agent checks for duplicates.
+3. **Generate** – the agent (Claude Code, Codex, Cursor, Gemini, Anthropic/OpenAI-compatible API, Ollama, or offline) produces the table / Use Case following the team's skill and standard.
+4. **Validate and review** – checklist and rules run in the browser; you edit and preview.
+5. **Publish or export** – after your approval, pages are created/updated in Confluence; or copy/export for Confluence and Zephyr.
+
+Work in progress is kept in the browser's local storage; agent configs and encrypted secrets in `.data/` on the local server.
+
+## Dependencies
+
+**System**
+
+| Dependency | Required | Used for |
+| --- | --- | --- |
+| Node.js 20.19+ or 22.12+ (with npm) | Yes | Running the app, the dev server and the tests |
+| A modern browser (Chrome, Firefox, Edge) | Yes | The UI at `http://localhost:5173` |
+| Claude Code CLI (`claude`), logged in | For the default agent | AI generation without an API key |
+| Codex CLI / Cursor CLI (`cursor-agent`) / Gemini CLI | Optional | Those agents, if you add them |
+| Ollama | Optional | Local-model agent |
+| Anthropic / OpenAI-compatible API key | Optional | API-based agents |
+| Confluence Personal Access Token (or Cloud API token) | For Confluence features | Reading pages, duplicate check, publishing |
+| Python 3.8+ | Optional | Only for *Network: VPN for agents, direct Confluence* |
+
+**npm packages** (installed by `npm install`)
+
+| Package | Version | Used for |
+| --- | --- | --- |
+| `react`, `react-dom` | ^19.3.0 | UI |
+| `mermaid` | ^12.1.0 | Rendering flowcharts (snapp usecase), PNG/SVG export |
+| `@anthropic-ai/sdk` | ^0.133.0 | *Claude (Anthropic API)* agent |
+| `undici` | ~7.29.0 | Server HTTP client with proxy routing (network setting) |
+| `vite` | ^8.3.4 | Dev server, backend plugins, build |
+| `@vitejs/plugin-react` | ^6.1.2 | React support for Vite |
+| `typescript` | ~5.9 | Type checking |
+| `@types/node`, `@types/react`, `@types/react-dom` | ^26.6.5 / ^19.3.0 | Type definitions |
+| `vitest` | ^4.1.11 | Test runner |
+| `jsdom` | ^30.1.2 | Browser environment for tests |
+| `@testing-library/react`, `@testing-library/user-event`, `@testing-library/jest-dom` | ^16.3.3 / ^14.6.7 / ^7.0.1 | UI tests |
 
 ## Workflow
 
@@ -131,6 +175,45 @@ Optional setting (Settings → شبکه): agent requests use the VPN you already
 ۲. ویرایش الگوریتم (بخش‌های Use Case) و کد Mermaid با پیش‌نمایش زنده و بررسی هم‌زمان قوانین؛ رسم فلوچارت از روی الگوریتم.
 
 ۳. خروجی با همان ساختار Confluence (کپی برای Paste، Storage Format، Wiki Markup، Markdown، PNG/SVG) یا انتشار مستقیم در همان صفحه (فقط اگر صفحه بعد از ایمپورت تغییر نکرده باشد).
+
+### روش کار به‌طور خلاصه
+
+یک برنامهٔ محلی با دو بخش (snapp seed! و snapp usecase!). رابط کاربری React در مرورگر اجرا می‌شود و پلاگین‌های سرور Vite (پوشهٔ `server/`) نقش Backend را دارند و با Agentها و Confluence ارتباط می‌گیرند؛ برای همین توکن‌ها و کلیدهای API هیچ‌وقت به مرورگر نمی‌رسند.
+
+۱. **ورودی:** نیازمندی‌ها و یادداشت‌ها (Seed Data) یا صفحهٔ Confluence (Use Case).
+
+۲. **جمع‌آوری اطلاعات:** سرور صفحه و زیرصفحه‌های Confluence را می‌خواند و Seed Dataهای موجود را پیدا می‌کند؛ Agent انتخاب‌شده تکراری‌ها را بررسی می‌کند.
+
+۳. **ساخت:** Agent (Claude Code، Codex، Cursor، Gemini، API سازگار با Anthropic یا OpenAI، Ollama یا حالت آفلاین) جدول یا Use Case را طبق اسکیل و استاندارد تیم می‌سازد.
+
+۴. **بررسی و بازبینی:** Checklist و قوانین در مرورگر اجرا می‌شوند؛ ویرایش و پیش‌نمایش می‌کنید.
+
+۵. **انتشار یا خروجی:** بعد از تأیید شما صفحه‌ها در Confluence ساخته یا به‌روز می‌شوند؛ یا برای Confluence و Zephyr کپی/خروجی می‌گیرید.
+
+کارهای در جریان در حافظهٔ مرورگر (Local Storage) و تنظیمات Agentها و کلیدهای رمزنگاری‌شده در پوشهٔ `.data/` روی سرور محلی ذخیره می‌شوند.
+
+### وابستگی‌ها
+
+**سیستمی**
+
+- **Node.js** نسخهٔ ۲۰٫۱۹ یا بالاتر (یا ۲۲٫۱۲ به بعد) همراه npm — الزامی
+- **مرورگر به‌روز** (Chrome، Firefox، Edge) — الزامی
+- **Claude Code** (دستور `claude`) با حساب واردشده — برای Agent پیش‌فرض
+- **Codex CLI**، **Cursor CLI** (`cursor-agent`)، **Gemini CLI** — اختیاری، فقط اگر این Agentها را اضافه کنید
+- **Ollama** — اختیاری، برای مدل محلی
+- **کلید API** سرویس Anthropic یا سازگار با OpenAI — اختیاری، برای Agentهای مبتنی بر API
+- **توکن Confluence** (Personal Access Token یا API Token در Cloud) — برای خواندن صفحات، بررسی تکراری و انتشار
+- **Python** نسخهٔ ۳٫۸ یا بالاتر — اختیاری، فقط برای تنظیم «شبکه» (VPN برای Agentها و اتصال مستقیم Confluence)
+
+**پکیج‌های npm** (با `npm install` نصب می‌شوند؛ جدول کامل نسخه‌ها در بخش انگلیسی Dependencies است)
+
+- `react` و `react-dom`: رابط کاربری
+- `mermaid`: رسم فلوچارت‌ها و خروجی PNG/SVG
+- `@anthropic-ai/sdk`: Agent «Claude (Anthropic API)»
+- `undici`: کلاینت HTTP سرور با مسیریابی Proxy (تنظیم شبکه)
+- `vite` و `@vitejs/plugin-react`: سرور توسعه، Backend و بیلد
+- `typescript` و پکیج‌های `@types/*`: بررسی نوع‌ها
+- `vitest`، `jsdom` و پکیج‌های `@testing-library/*`: تست‌ها
 
 ### پیش‌نیازها
 
