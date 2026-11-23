@@ -5,6 +5,9 @@ import type { AgentRuntime } from './agents/runtime.ts';
 import { agentHttp } from './network/httpClient.ts';
 import { claudeCodeVersion, ProviderError } from './providers.ts';
 
+/** Upper bound for one generation request (the browser confirms with the user while it runs). */
+const MAX_TIMEOUT_MS = 30 * 60_000;
+
 interface Options {
   /** From .env / .env.local; falls back to the SDK's own credential lookup (env vars, `ant auth login`). */
   anthropicApiKey?: string;
@@ -87,7 +90,8 @@ async function handleGenerate(req: IncomingMessage, res: ServerResponse, options
     return send(res, 400, { error: 'مدل یا متن درخواست ارسال نشده است.' });
   }
   if (!schema || typeof schema !== 'object') return send(res, 400, { error: 'ساختار خروجی (schema) ارسال نشده است.' });
-  const timeoutMs = typeof body.timeoutMs === 'number' && body.timeoutMs > 0 ? Math.min(body.timeoutMs, 600_000) : 120_000;
+  // Up to 30 minutes: the app asks the user every couple of minutes whether to keep waiting.
+  const timeoutMs = typeof body.timeoutMs === 'number' && body.timeoutMs > 0 ? Math.min(body.timeoutMs, MAX_TIMEOUT_MS) : 120_000;
 
   // Stop the upstream call if the browser cancels or goes away.
   const controller = new AbortController();

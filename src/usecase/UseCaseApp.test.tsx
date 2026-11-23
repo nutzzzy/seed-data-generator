@@ -22,7 +22,7 @@ function renderApp(transport?: AiTransport) {
   render(
     <ToastProvider>
       <DialogProvider>
-        <App transport={transport} />
+        <App transport={transport} showUseCase />
       </DialogProvider>
     </ToastProvider>,
   );

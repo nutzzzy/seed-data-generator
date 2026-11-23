@@ -242,7 +242,8 @@ summary:focus-visible {
   letter-spacing: -0.035em;
 }
 .wordmark-text {
-  padding: 0.05em 0.02em 0.12em;
+  /* Extra end padding: the italic «seed» leans past its box, and background-clip would cut off the «d». */
+  padding: 0.05em 0.08em 0.12em 0.02em;
   background: linear-gradient(100deg, var(--brand-2) 0%, var(--brand-2) 38%, var(--brand) 100%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -253,7 +254,7 @@ summary:focus-visible {
 }
 .wordmark-bang {
   display: inline-block;
-  margin-left: -0.12em;
+  margin-left: -0.03em;
   color: var(--brand);
   transform: skewX(-14deg);
   transform-origin: bottom;
@@ -2109,4 +2110,24 @@ h4.row-between select {
   color: var(--muted);
   cursor: not-allowed;
   pointer-events: none;
+}
+
+/* "Still generating after 120 s — keep waiting?" banner. */
+.slow-prompt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--warning);
+  border-radius: 8px;
+  background: var(--warning-soft);
+}
+.slow-prompt p {
+  margin: 0;
+}
+.slow-prompt small {
+  color: var(--muted);
 }

@@ -71,6 +71,15 @@ beforeEach(() => localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultWorkspa
 afterEach(() => vi.restoreAllMocks());
 
 describe('workspace', () => {
+  it('shows only snapp seed!: no section switch, and #usecase does not open the Use Case section', async () => {
+    window.history.replaceState(null, '', '#usecase');
+    renderApp();
+    expect(screen.getByRole('heading', { name: 'snapp seed!' })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'بخش‌ها' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'snapp usecase!' })).not.toBeInTheDocument();
+    expect(window.location.hash).toBe('#seed');
+  });
+
   it('starts with the Seed Data guide, the QA Seed Data standard and template, and example notes', async () => {
     localStorage.clear();
     const { user } = renderApp();

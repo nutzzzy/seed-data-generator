@@ -12,6 +12,7 @@ import { validateTable } from '../lib/validate';
 import { ConfluenceSettings } from './ConfluenceSettings';
 import { useDialogs } from './Dialogs';
 import { ExportPanel } from './ExportPanel';
+import { SlowGenerationPrompt, useSlowConfirm } from './SlowGenerationPrompt';
 import { TableEditor } from './TableEditor';
 import { useToast } from './Toasts';
 import { ValidationPanel } from './ValidationPanel';
@@ -173,6 +174,7 @@ export function GenerateSeedModal({ settings, standard, template, initialRequest
   const [table, setTable] = useState<GeneratedTable | null>(null);
   const [genError, setGenError] = useState<string | null>(null);
   const genController = useRef<AbortController | null>(null);
+  const slow = useSlowConfirm();
   const [targetPage, setTargetPage] = useState<TargetPage | null>(null);
 
   const generate = async (j: JobView) => {
@@ -187,9 +189,11 @@ export function GenerateSeedModal({ settings, standard, template, initialRequest
         standard,
         template,
         input: j.context.text,
-        settings: { ...settings, provider: 'agent', agentId: j.agentId, agentName: j.agentName, timeoutSeconds: Math.max(settings.timeoutSeconds, 300) },
+        settings: { ...settings, provider: 'agent', agentId: j.agentId, agentName: j.agentName },
         signal: controller.signal,
         transport,
+        // After 120 s (the timeout in Settings) ask whether to keep waiting; «توقف ساخت» stops with a retry option.
+        onSlow: slow.ask,
       });
       // An ID that already exists gets the next free number for its prefix (the page being overwritten may keep its own).
       const fresh = j.decision?.action === 'overwrite' ? await api.jobs.target(j.id).catch(() => null) : null;
@@ -204,6 +208,7 @@ export function GenerateSeedModal({ settings, standard, template, initialRequest
       if (controller.signal.aborted) return;
       setGenError(err instanceof GenerationError || err instanceof ApiError ? err.message : errText(err));
     } finally {
+      slow.settle();
       genController.current = null;
     }
   };
@@ -459,6 +464,7 @@ export function GenerateSeedModal({ settings, standard, template, initialRequest
                   {job.error}
                 </p>
               )}
+              {phase === 'generating' && !genError && <SlowGenerationPrompt pending={slow.pending} answer={slow.answer} />}
               {phase === 'generating' && genError && (
                 <p className="error-box" role="alert">
                   {genError}

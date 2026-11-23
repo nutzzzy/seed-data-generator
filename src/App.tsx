@@ -8,15 +8,20 @@ export { providerLabel } from './lib/providerLabel';
 interface Props {
   /** Injected in tests; defaults to the local server endpoint. */
   transport?: AiTransport;
+  /** Show the snapp usecase section and the section switch (hidden from users; tests turn it on). */
+  showUseCase?: boolean;
 }
+
+/** The Use Case section is hidden from users for now: only snapp seed! is shown, without a section switch. */
+export const SHOW_USE_CASE = false;
 
 /** The two independent sections of the app. They share only the UI shell, never data or rules. */
 export type Mode = 'seed' | 'usecase';
 
 const MODE_KEY = 'snapp:mode';
 
-function initialMode(): Mode {
-  if (typeof window === 'undefined') return 'seed';
+function initialMode(showUseCase: boolean): Mode {
+  if (typeof window === 'undefined' || !showUseCase) return 'seed';
   if (window.location.hash === '#usecase') return 'usecase';
   if (window.location.hash === '#seed') return 'seed';
   try {
@@ -26,8 +31,8 @@ function initialMode(): Mode {
   }
 }
 
-export default function App({ transport }: Props) {
-  const [mode, setMode] = useState<Mode>(initialMode);
+export default function App({ transport, showUseCase = SHOW_USE_CASE }: Props) {
+  const [mode, setMode] = useState<Mode>(() => initialMode(showUseCase));
 
   useEffect(() => {
     try {
@@ -39,7 +44,7 @@ export default function App({ transport }: Props) {
     document.title = mode === 'usecase' ? 'snapp usecase!' : 'snapp seed!';
   }, [mode]);
 
-  const modeSwitch = (
+  const modeSwitch = showUseCase && (
     <nav className="mode-switch" aria-label="بخش‌ها" dir="rtl">
       <button type="button" aria-pressed={mode === 'seed'} onClick={() => setMode('seed')}>
         snapp seed!

@@ -15,6 +15,7 @@ import { useToast } from '../components/Toasts';
 import { ValidationPanel } from '../components/ValidationPanel';
 import { seedDataInput, seedDataStandard, seedDataTemplate } from '../lib/defaults';
 import { generateTable, GenerationError, type AiTransport } from '../lib/generate';
+import { SlowGenerationPrompt, useSlowConfirm } from '../components/SlowGenerationPrompt';
 import { newId, nowIso } from '../lib/ids';
 import { blankStandard, blankTemplate, sameContent, templateProblems } from '../lib/model';
 import { missingSeedFields } from '../lib/seedData';
@@ -42,6 +43,7 @@ export function SeedDataApp({ transport, modeSwitch, apis }: Props) {
   const [loaded] = useState(() => loadWorkspace());
   const [ws, setWs] = useState<Workspace>(loaded.workspace);
   const [busy, setBusy] = useState<AbortController | null>(null);
+  const slow = useSlowConfirm();
   const [genError, setGenError] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -212,6 +214,12 @@ export function SeedDataApp({ transport, modeSwitch, apis }: Props) {
         settings: ws.settings,
         signal: controller.signal,
         transport,
+        // After 120 s (the timeout in Settings) ask whether to keep waiting; «توقف ساخت» cancels like «لغو».
+        onSlow: async (seconds) => {
+          const ok = await slow.ask(seconds);
+          if (!ok) controller.abort();
+          return ok;
+        },
       });
       update({ table });
       setShowValidation(true);
@@ -226,6 +234,7 @@ export function SeedDataApp({ transport, modeSwitch, apis }: Props) {
         notify('error', 'ساخت Seed Data ناموفق بود.');
       }
     } finally {
+      slow.settle();
       setBusy(null);
     }
   };
@@ -391,6 +400,7 @@ export function SeedDataApp({ transport, modeSwitch, apis }: Props) {
               )}
             </span>
           </div>
+          <SlowGenerationPrompt pending={slow.pending} answer={slow.answer} />
           {missingFields.length > 0 && (
             <div className="error-box" role="alert">
               <p>

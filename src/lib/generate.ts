@@ -72,13 +72,21 @@ export interface GenerateArgs {
   settings: Settings;
   signal: AbortSignal;
   transport?: AiTransport;
+  /**
+   * Asked every `settings.timeoutSeconds` (default 120) while the AI is still working; resolve true to keep waiting,
+   * false to stop. The request keeps running while the question is open. Without it, that time is a hard timeout.
+   */
+  onSlow?: (elapsedSeconds: number) => Promise<boolean>;
 }
+
+/** Longest a generation may run when the user keeps confirming (the local server allows the same). */
+export const MAX_CONFIRMED_WAIT_MS = 30 * 60_000;
 
 /**
  * Generates a new table. Throws GenerationError (or AbortError) on any failure and never touches
  * existing state, so the caller decides when to replace the current table.
  */
-export async function generateTable({ standard, template, input, settings, signal, transport = httpTransport }: GenerateArgs): Promise<GeneratedTable> {
+export async function generateTable({ standard, template, input, settings, signal, transport = httpTransport, onSlow }: GenerateArgs): Promise<GeneratedTable> {
   if (!input.trim()) throw new GenerationError('ابتدا نیازمندی‌ها یا یادداشت‌ها را وارد کنید؛ Seed Data از روی آن‌ها ساخته می‌شود.');
   const problems = templateProblems(template);
   if (problems.length) throw new GenerationError(problems.join(' '));
@@ -91,9 +99,25 @@ export async function generateTable({ standard, template, input, settings, signa
 
   const target = aiTarget(settings);
   const prompt = buildPrompt(standard, template.columns, input);
-  const timeoutMs = (settings.timeoutSeconds > 0 ? settings.timeoutSeconds : 120) * 1000;
+  const intervalMs = (settings.timeoutSeconds > 0 ? settings.timeoutSeconds : 120) * 1000;
+  const timeoutMs = onSlow ? MAX_CONFIRMED_WAIT_MS : intervalMs;
   const timeout = AbortSignal.timeout(timeoutMs);
-  const combined = AbortSignal.any([signal, timeout]);
+  const stopped = new AbortController();
+  const combined = AbortSignal.any([signal, timeout, stopped.signal]);
+
+  // Ask again after every interval the user agreed to wait; a "no" stops the request.
+  const started = Date.now();
+  let finished = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const arm = () => {
+    timer = setTimeout(async () => {
+      const keepWaiting = await onSlow!(Math.round((Date.now() - started) / 1000));
+      if (finished || combined.aborted) return;
+      if (keepWaiting) arm();
+      else stopped.abort();
+    }, intervalMs);
+  };
+  if (onSlow) arm();
 
   let text: string;
   try {
@@ -109,9 +133,14 @@ export async function generateTable({ standard, template, input, settings, signa
     );
   } catch (err) {
     if (signal.aborted) throw err;
+    if (stopped.signal.aborted) throw new GenerationError('ساخت به انتخاب شما متوقف شد. ورودی و جدول فعلی تغییری نکرد.');
+    if (timeout.aborted && onSlow) throw new GenerationError(`AI بعد از ${Math.round(MAX_CONFIRMED_WAIT_MS / 60_000)} دقیقه هم پاسخ نداد. دوباره تلاش کنید.`);
     if (timeout.aborted) throw new GenerationError(`AI در ${settings.timeoutSeconds} ثانیه پاسخ نداد. دوباره تلاش کنید یا در تنظیمات زمان انتظار را بیشتر کنید.`);
     if (err instanceof GenerationError) throw err;
     throw new GenerationError(err instanceof Error ? err.message : 'درخواست AI ناموفق بود.');
+  } finally {
+    finished = true;
+    clearTimeout(timer);
   }
 
   try {

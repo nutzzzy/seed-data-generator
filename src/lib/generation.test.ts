@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { generateBasic } from './basicGenerator';
 import { exampleStandard, exampleTemplate } from '../test/fixtures';
 import { defaultSettings } from './defaults';
-import { generateTable, GenerationError, type AiTransport } from './generate';
+import { generateTable, GenerationError, MAX_CONFIRMED_WAIT_MS, type AiTransport } from './generate';
 import { blankColumn } from './model';
 import { extractJson, normalizeResponse } from './parseResponse';
 import { buildPrompt } from './prompt';
@@ -121,6 +121,34 @@ describe('generateTable', () => {
 
     const slow: AiTransport = (_req, s) => new Promise((_, reject) => s.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError'))));
     await expect(generateTable({ ...args, settings: { ...anthropic, timeoutSeconds: 0.01 }, transport: slow })).rejects.toThrow(/پاسخ نداد/);
+  }, 10_000);
+
+  it('asks whether to keep waiting after each interval, keeps going on yes and stops on no', async () => {
+    const args = { standard: exampleStandard, template: tpl, input: 'x', settings: { ...anthropic, timeoutSeconds: 0.02 }, signal: signal() };
+    const reply = JSON.stringify({ rows: [{ ID: 'AC-1' }], issues: [] });
+    const answers: number[] = [];
+
+    // Yes twice: the request outlives the interval (instead of timing out) and its result is used.
+    const late: AiTransport = (req) => {
+      expect(req.timeoutMs).toBe(MAX_CONFIRMED_WAIT_MS);
+      return new Promise((resolve) => setTimeout(() => resolve(reply), 120));
+    };
+    const table = await generateTable({ ...args, transport: late, onSlow: async (sec) => (answers.push(sec), true) });
+    expect(table.rows).toHaveLength(1);
+    expect(answers.length).toBeGreaterThanOrEqual(2);
+
+    // No: the request is aborted and the user hears it was stopped.
+    let aborted = false;
+    const hanging: AiTransport = (_req, s) =>
+      new Promise((_, reject) => s.addEventListener('abort', () => ((aborted = true), reject(new DOMException('aborted', 'AbortError')))));
+    await expect(generateTable({ ...args, transport: hanging, onSlow: async () => false })).rejects.toThrow('متوقف شد');
+    expect(aborted).toBe(true);
+
+    // A fast answer never asks.
+    const onSlow = vi.fn(async () => true);
+    await generateTable({ ...args, transport: () => Promise.resolve(reply), onSlow });
+    await new Promise((r) => setTimeout(r, 60));
+    expect(onSlow).not.toHaveBeenCalled();
   }, 10_000);
 
   it('uses Claude Code by default and lets it pick its own model', async () => {
