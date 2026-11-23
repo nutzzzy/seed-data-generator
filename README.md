@@ -1,346 +1,86 @@
 # QA Seed Data Generator
 
-Turn requirements and notes into Seed Data that follows the team's QA Seed Data Guide (v4, Confluence page QC / 247858019), then publish or copy it into Confluence and reference it from Zephyr. The UI is Persian and right-to-left.
+Local app that turns requirements into team-standard Seed Data and Use Cases, then publishes them to Confluence / Zephyr. UI is Persian (RTL).
 
-- [English](#run)
-- [How it works](#how-it-works-in-brief) · [Dependencies](#dependencies)
-- [راهنمای فارسی اجرا روی لوکال](#راهنمای-اجرا-روی-لوکال)
+[راهنمای فارسی](#راهنمای-فارسی)
 
-## Run
+## Features
 
-```bash
-npm install
-```
+- **Seed Data** – generate the table from notes or a Confluence page, duplicate check against existing Seed Data, checklist validation, publish to Confluence or copy for Confluence / Zephyr.
+- **snapp usecase** (`/#usecase`) – import, write and validate Food Partner Use Cases and Mermaid flowcharts; export or publish back to Confluence.
+- **Agents** (Settings) – Claude Code (default), Codex, Cursor, Gemini, Anthropic / OpenAI-compatible API, Ollama, or offline.
+- **Network** (optional) – agents through the OS VPN, Confluence direct. See [docs/network-routing.md](docs/network-routing.md).
 
-```bash
-npm run dev
-```
+## Run on a new machine
 
-Open http://localhost:5173. Your work is saved in this browser's local storage (the fixed port keeps it findable after restarts).
+1. **Install Node.js 20.19+ or 22.12+** (`node --version`).
+2. **Get the code** – `git clone https://github.com/nutzzzy/seed-data-generator.git` and `cd` into it.
+   Copying the folder also works, but **do not copy `node_modules/` or `dist/`** (they contain OS-specific binaries).
+3. **Install dependencies** – `npm ci` (or `npm install`).
+4. **Default agent** – install Claude Code and log in once: run `claude`. Check with `claude --version`.
+5. **Optional config** – `cp .env.example .env.local`, then set `CONFLUENCE_TOKEN`, `CLAUDE_CODE_PATH` (if `claude` is not on PATH) or `ANTHROPIC_API_KEY`.
+6. **Start** – `npm run dev`, open http://localhost:5173.
+7. Re-enter the Confluence token and agent API keys in the app (Settings), or copy the whole `.data/` folder from the old machine (it holds the encryption key too).
 
-## How it works (in brief)
+Work in progress lives in the browser's local storage, so it does not move to the new machine.
 
-One local app with two sections, served by the Vite dev server. The browser runs the React UI; the dev server's plugins (`server/`) are the backend that talks to AI agents and Confluence, so tokens and API keys never reach the browser.
+### Troubleshooting
 
-1. **Input** – requirements/notes (Seed Data) or a Confluence page (Use Case).
-2. **Context** – the backend reads the Confluence page tree and finds existing Seed Data; the selected agent checks for duplicates.
-3. **Generate** – the agent (Claude Code, Codex, Cursor, Gemini, Anthropic/OpenAI-compatible API, Ollama, or offline) produces the table / Use Case following the team's skill and standard.
-4. **Validate and review** – checklist and rules run in the browser; you edit and preview.
-5. **Publish or export** – after your approval, pages are created/updated in Confluence; or copy/export for Confluence and Zephyr.
-
-Work in progress is kept in the browser's local storage; agent configs and encrypted secrets in `.data/` on the local server.
-
-## Dependencies
-
-**System**
-
-| Dependency | Required | Used for |
-| --- | --- | --- |
-| Node.js 20.19+ or 22.12+ (with npm) | Yes | Running the app, the dev server and the tests |
-| A modern browser (Chrome, Firefox, Edge) | Yes | The UI at `http://localhost:5173` |
-| Claude Code CLI (`claude`), logged in | For the default agent | AI generation without an API key |
-| Codex CLI / Cursor CLI (`cursor-agent`) / Gemini CLI | Optional | Those agents, if you add them |
-| Ollama | Optional | Local-model agent |
-| Anthropic / OpenAI-compatible API key | Optional | API-based agents |
-| Confluence Personal Access Token (or Cloud API token) | For Confluence features | Reading pages, duplicate check, publishing |
-| Python 3.8+ | Optional | Only for *Network: VPN for agents, direct Confluence* |
-
-**npm packages** (installed by `npm install`)
-
-| Package | Version | Used for |
-| --- | --- | --- |
-| `react`, `react-dom` | ^19.3.0 | UI |
-| `mermaid` | ^12.1.0 | Rendering flowcharts (snapp usecase), PNG/SVG export |
-| `@anthropic-ai/sdk` | ^0.133.0 | *Claude (Anthropic API)* agent |
-| `undici` | ~7.29.0 | Server HTTP client with proxy routing (network setting) |
-| `vite` | ^8.3.4 | Dev server, backend plugins, build |
-| `@vitejs/plugin-react` | ^6.1.2 | React support for Vite |
-| `typescript` | ~5.9 | Type checking |
-| `@types/node`, `@types/react`, `@types/react-dom` | ^26.6.5 / ^19.3.0 | Type definitions |
-| `vitest` | ^4.1.11 | Test runner |
-| `jsdom` | ^30.1.2 | Browser environment for tests |
-| `@testing-library/react`, `@testing-library/user-event`, `@testing-library/jest-dom` | ^16.3.3 / ^14.6.7 / ^7.0.1 | UI tests |
-
-## Workflow
-
-- **Guide panel** – summary of the QA Seed Data Guide: when to create Seed Data, Zephyr vs Confluence, naming convention, rules.
-1. **Requirements and notes** – paste what the tests need, then click **ساخت Seed Data**. Missing information becomes `Not specified` and is flagged; nothing is invented.
-2. **Review and edit** – one row per Seed Data; edit cells, add/delete/move rows and columns, save and reopen. **بررسی با Checklist** scores the guide's checklist (ID set, naming convention, unique, Name, Purpose, Environment, Data, Status, Preconditions, How to Create, no sensitive data, Used For) and lists the rows to fix.
-3. **Confluence and Zephyr** – copy one Confluence section per Seed Data in the guide's structure (Data as a Field/Value table, Preconditions and Used For as lists, How to Create as numbered steps) or everything as one table; copy the Zephyr reference (`Test Data: SD-…`). More formats: HTML, wiki markup, Markdown, CSV, HTML file.
-- **Advanced settings** – the standard and the table structure (columns and their checked rules) for when the guide changes. Table edits never change them unless you click *update structure from the current table*.
-
-## QA Seed Data guide
-
-The team's QA Seed Data Guide is built in as the default **QA Seed Data (Confluence)** standard and **QA Seed Data table** template (`src/lib/defaults.ts`). Generation follows its structure (Seed Data ID, Name, Purpose, Environment, Data, Preconditions, How to Create, Used For), naming convention `SD-[ENTITY]-[DESCRIPTION]-[NUMBER]` and rules. Validation checks the ID format and uniqueness, Environment (`stage`, `UAT`, `production`), that Data contains a status, and that no passwords, tokens or secrets are recorded. Simple one-test data is not turned into Seed Data; it is flagged as belonging in Zephyr.
-
-The same guide is a Claude Code skill in `.claude/skills/qa-seed-data/SKILL.md`, so Claude Code follows it when you work with seed data in this project. Keep both in sync when the guide changes.
-
-## snapp usecase (separate section)
-
-Switch with **snapp usecase** in the header (or open `http://localhost:5173/#usecase`). It is fully separate from Seed Data: its own storage, its own rules (`src/usecase/rules.ts`) and its own Claude Code skill (`.claude/skills/snapp-usecase/SKILL.md`), both taken from the Confluence page [Partner Use Cases by Domain](https://confluence.snappfood.ir/spaces/FP/pages/154408734/Partner+Use+Cases+by+Domain) and the Use Case pages under it.
-
-1. **Import or create** – import a Confluence page by link (needs a token, see below) or by copy/paste (open the page, Ctrl+A, Ctrl+C, paste); both kinds of pages are recognised: a Use Case page (`Use Case ID`, Preconditions … Related Use Cases) and the diagram page (numbered `N. Domain — Service` sections with Description, Mermaid Diagram Source, Rendered Diagram). Or generate a Use Case and its flowchart from requirements with AI, or start empty.
-2. **Edit the algorithm and the flowchart** – Use Case fields in the page order (lists as an outline: one item per line, two spaces per level, `### ` sub-heading, ` \` line break); Mermaid source with a live preview; *draw from the algorithm* (offline draft) or *draw / fix with AI*. The rules are checked live (UC ID format, sections, quoted Mermaid labels, `flowchart TD/LR`, `[[…]]` for other domains, em-dash headings, current domain names…).
-3. **Export for Confluence** – rich copy to paste in the editor, storage format (the pages' exact markup, incl. `ac:image` attachments), wiki markup, Markdown, PNG/SVG of each diagram named like the page attachments. Documents imported by link can be **published** back to the same page: the update is refused if the page changed since the import, the page intro is kept, and only diagrams whose source changed get a new PNG.
-
-Link import and publishing need a Confluence Personal Access Token (Confluence → Profile → Personal Access Tokens), saved in the app's **Confluence** settings or in `.env.local`:
-
-```bash
-CONFLUENCE_BASE_URL=https://confluence.snappfood.ir
-CONFLUENCE_TOKEN=<your token>
-```
-
-The token stays in the local dev server and is only sent to `CONFLUENCE_BASE_URL`.
-
-## Generating from Confluence
-
-**ساخت Seed Data** opens a modal; every generation goes through these steps, in this order:
-
-1. **Context** – the Confluence page link (required, on the configured host), the agent, what Seed Data is needed (prefilled from step 1) and optional instructions. Without a Confluence token, the Confluence settings appear right in the modal.
-2. **Read Confluence** – the linked page and all of its child pages (paginated, retried on rate limits, up to 300 pages / 8 levels) through the REST API. Pages or child lists that cannot be read are listed with the reason; you decide whether to continue.
-3. **Duplicate check** – existing Seed Data in those pages (one entry per `SD-…` id) is ranked by content and compared with the request by the selected agent (purpose, fields and values, entities, states, preconditions, scenario — not the title). Matches are shown with their page links, explanation, matching fields and last update, and you choose: **don't generate**, **generate as new**, or **overwrite** a selected page. Nothing is generated before this step finishes.
-4. **Generate** – the agent gets the project Skill (`.claude/skills/qa-seed-data/SKILL.md`), the request and the documentation, and generates with the active standard and table structure, so output and validation are the same as before. Assumptions and missing information are listed.
-5. **Preview and approval** – the exact page content in a Confluence-like preview (sandboxed), before/after for an update, editing (the approval is withdrawn after every edit), copy (everything, JSON, one section, plus all existing exports) and regenerate. Publishing needs the approval checkbox; an overwrite also asks for confirmation. An overwrite only replaces the sections with the same Seed Data IDs and keeps the rest of the page, unless you choose to replace the whole page.
-6. **Publish** – one page per Seed Data, titled with its Seed Data ID (`SD-[DOMAIN]-[ENTITY]-[STATE]-[NNN]`), with the Metadata in a Page Properties macro and the guide's labels (`seed_data`, `sd-[domain]`, `sd-[entity]`, `env-[environment]`), under its Domain page (e.g. QA Seed Data › Bordar) unless you choose another parent. An ID that already exists (pages read, or pages labelled `seed_data` in the space) gets the next free number. An overwrite updates the chosen page at the previewed version and renames a descriptive title to the ID. If someone changed the page in the meantime, nothing is written: the new version is shown and you review and approve again. The result shows the title, link, page id, agent and time.
-
-The generated Seed Data also stays in the page's table, so it can be copied or exported even when you don't publish. **ساخت سریع (بدون Confluence)** is the previous generation from notes only.
-
-### Confluence settings
-
-The **Confluence** button in the header (or the modal) sets the base URL, the login method (Personal Access Token for Data Center, or email + API token for Cloud) and the token, with a connection test. The token is stored encrypted on the local server (`.data/`), shown only masked, and can be replaced or removed. `CONFLUENCE_BASE_URL` / `CONFLUENCE_TOKEN` in `.env.local` still work as a fallback.
-
-## Agents (Settings)
-
-Settings is the agent manager: add, edit, enable / disable, remove and test AI agents, pick a default agent, and choose which agent this section uses. Each agent has a name, a provider type and that provider's settings (model, Base URL, API key…).
-
-- Agent configs live in `.data/agents.json`, API keys encrypted (AES-256-GCM) in `.data/secrets.json`, both on the local server and readable by your user only (`SEED_DATA_DIR` and `SEED_SECRET_KEY` in `.env.local` change the location and key). Keys are never stored in the browser and never sent back to it: the UI only shows them masked, and you can replace or remove them.
-- The built-in agents **Claude Code**, **Claude (Anthropic API)** and **Ollama** are the providers below. The first time Settings is opened, your earlier model choices are copied into them. Until you save an agent choice, generation keeps using exactly the old request.
-- **Add Agent templates** – Claude Code, **Codex**, **Cursor**, **Gemini CLI**, **Gemini API**, Claude API, Ollama and a custom OpenAI-compatible service. A template fills in the provider, a name and its settings.
-- **Codex / Cursor / Gemini CLI** – run the locally installed CLI headless, like Claude Code: read-only mode (`codex exec --sandbox read-only --ephemeral`, `cursor-agent --mode ask`, `gemini --approval-mode plan`), in an empty temporary folder so no project files are sent. They use the CLI's own login (`codex login`, `cursor-agent login`, `gemini`) or an optional API key, which is passed as an environment variable (`CODEX_API_KEY`, `CURSOR_API_KEY`, `GEMINI_API_KEY`), never on the command line. The executable is looked up on `PATH` and in `~/.local/bin`; set *مسیر فایل اجرایی* when it is elsewhere.
-- **OpenAI-compatible service** – OpenAI, Azure OpenAI, OpenRouter, Gemini's OpenAI endpoint (the Gemini API template), LM Studio, vLLM… (Base URL, model, optional API key, structured-output mode).
-- New provider types are added in `server/agents/registry.ts` (one `ProviderDefinition`: settings fields, `generate`, `testConnection`); the form in Settings is built from those fields.
-
-## Network: VPN for agents, direct Confluence
-
-Optional setting (Settings → شبکه): agent requests use the VPN you already connected in the OS, while Confluence requests bypass it. Off by default. Needs Python 3.8+, no admin rights. Details, platform matrix and limitations: [docs/network-routing.md](docs/network-routing.md).
-
-## Generation providers
-
-- **Claude Code (default)** – runs the local `claude` CLI headless (tools and MCP off), so usage counts against the Claude Code account you are logged into. No API key. If `claude` is not on your PATH, set `CLAUDE_CODE_PATH` in `.env.local`.
-- **Claude (Anthropic API)** – copy `.env.example` to `.env.local`, set `ANTHROPIC_API_KEY`, restart `npm run dev`. The key stays in the local dev server.
-- **Ollama (local model)** – install Ollama, `ollama pull llama3.1`, choose it in Settings.
-- **Basic (offline)** – no AI. Maps pasted tables and `Column: value` lines; every other line becomes a row.
+| Error | Fix |
+| --- | --- |
+| `Cannot find module './server/...'` after `git clone` | Some files were not committed/pushed. Run `git status` on the old machine, commit and push everything, then pull again. |
+| `npm ci` / Vite fails with engine or syntax errors | Node is too old; upgrade to 20.19+ / 22.12+. |
+| `Cannot find module @rollup/...` / `rolldown` binding | `node_modules` was copied from another OS: `rm -rf node_modules && npm ci`. |
+| `Port 5173 is in use` | Stop the other process (`lsof -i :5173`); the port is fixed on purpose. |
+| `Claude Code was not found` / `Not logged in` | Install Claude Code or set `CLAUDE_CODE_PATH`; run `claude` once to log in. |
+| Confluence 401 / not reachable | Set the token in the Confluence settings; check VPN / network access to Confluence. |
 
 ## Scripts
 
-- `npm test` – unit, UI and server tests (Vitest + Testing Library)
-- `npm run build` – type-check and production build
-- `npm run preview` – serve the production build (AI endpoint included)
+`npm run dev` – app · `npm test` – tests · `npm run build` – type-check and build · `npm run preview` – serve the build
 
 ## Code layout
 
-- `src/seed/` – the Seed Data section; `src/usecase/` – the snapp usecase section (logic, components, tests); `src/App.tsx` – the switch between them
-- `src/lib/` – framework-free logic: types, model helpers, prompt, response normalizer, offline generator, validator, exporters, storage, clipboard
-- `src/components/` – shared UI pieces
-- `server/` – Vite plugins exposing `/api/ai/status` and `/api/ai/generate` (by agent, or the old provider fields), `/api/agents/*` (agent management), `/api/confluence/*` (settings, page import and publish) and `/api/seed/*` (the Confluence generation workflow); `server/confluence/` – REST client, credentials, page-tree traversal; `server/seedWorkflow/` – duplicate detection and the workflow jobs; `server/agents/` – provider registry and agent service; `secretStore.ts` – encrypted key storage
+`src/seed/`, `src/usecase/` – the two sections · `src/lib/` – logic · `src/components/` – shared UI · `server/` – Vite plugins acting as the backend (agents, Confluence, Seed workflow, network) · `.claude/skills/` – team guides (keep in sync with `src/lib/defaults.ts` / `src/usecase/rules.ts`).
 
 ---
 
 <div dir="rtl" align="right">
 
-## راهنمای اجرا روی لوکال
+## راهنمای فارسی
 
-این برنامه کاملاً روی کامپیوتر خودتان اجرا می‌شود. برای ساخت جدول از **Claude Code** همین سیستم استفاده می‌کند؛ یعنی مصرف توکن از همان حسابی کم می‌شود که با آن در Claude Code وارد شده‌اید و به کلید API جداگانه نیازی نیست.
+### کاربردها
 
-### راهنمای Seed Data تیم QA
+- **Seed Data:** ساخت جدول Seed Data از یادداشت یا صفحهٔ Confluence، بررسی تکراری، Checklist، انتشار در Confluence یا کپی برای Confluence و Zephyr.
+- **snapp usecase:** ایمپورت، نوشتن و بررسی Use Case و فلوچارت Mermaid؛ خروجی یا انتشار در Confluence.
+- **Agentها (Settings):** Claude Code (پیش‌فرض)، Codex، Cursor، Gemini، API، Ollama یا حالت آفلاین.
+- **شبکه (اختیاری):** Agentها از VPN، Confluence مستقیم.
 
-برنامه کاملاً بر اساس راهنمای Seed Data تیم QA است و سه مرحله دارد:
+### اجرا روی یک سیستم جدید
 
-۱. **نیازمندی‌ها و یادداشت‌ها:** داده‌هایی را که تست‌ها لازم دارند وارد کنید و «ساخت Seed Data» را بزنید. اطلاعاتی که در ورودی نیست ساخته نمی‌شود و با `Not specified` مشخص می‌شود.
+۱. نصب **Node.js** نسخهٔ ۲۰٫۱۹+ یا ۲۲٫۱۲+ (بررسی: `node --version`).
 
-۲. **بررسی و ویرایش:** هر ردیف یک Seed Data است. دکمهٔ «بررسی با Checklist» موارد Checklist راهنما را خودکار بررسی می‌کند (Seed Data ID و Naming Convention، تکراری نبودن، Name، Purpose، Environment، Data و Status، Preconditions، How to Create، نبودن اطلاعات حساس و Used For) و ردیف‌های مشکل‌دار را نشان می‌دهد.
+۲. دریافت کد با `git clone` (آدرس بالا) و رفتن به پوشهٔ پروژه. اگر پوشه را کپی می‌کنید، **`node_modules` و `dist` را کپی نکنید.**
 
-۳. **انتقال به Confluence و Zephyr:** هر Seed Data با ساختار راهنما برای Confluence کپی می‌شود و متن Reference برای فیلد Test Data در Zephyr آماده است.
+۳. نصب وابستگی‌ها: `npm ci`
 
-استاندارد و ساختار جدول در «تنظیمات پیشرفته» پایین صفحه قرار دارند و فقط وقتی راهنمای تیم تغییر کرد لازم است آن‌ها را عوض کنید. اگر از قبل با برنامه کار کرده‌اید، **QA Seed Data** را از فهرست‌های همان بخش انتخاب کنید.
+۴. نصب **Claude Code** و یک بار ورود با دستور `claude`.
 
-همین راهنما به صورت اسکیل Claude Code در مسیر `.claude/skills/qa-seed-data/SKILL.md` هم قرار دارد.
+۵. (اختیاری) `cp .env.example .env.local` و تنظیم `CONFLUENCE_TOKEN` یا `CLAUDE_CODE_PATH` یا `ANTHROPIC_API_KEY`.
 
-### بخش snapp usecase
+۶. اجرا: `npm run dev` و باز کردن `http://localhost:5173`
 
-بخشی کاملاً جدا از Seed Data (حافظه، قوانین و اسکیل جدا: `.claude/skills/snapp-usecase/SKILL.md`) برای Use Caseها و فلوچارت‌های Food Partner طبق صفحهٔ Confluence «Partner Use Cases by Domain». از دکمهٔ **snapp usecase** در بالای صفحه وارد شوید:
+۷. توکن Confluence و کلیدهای API را دوباره در Settings وارد کنید، یا کل پوشهٔ `.data/` را از سیستم قبلی کپی کنید.
 
-۱. ایمپورت صفحهٔ Use Case یا صفحهٔ نمودارها با لینک (نیاز به `CONFLUENCE_TOKEN` در `.env.local`) یا با کپی/Paste محتوای صفحه؛ یا ساخت Use Case و فلوچارت با AI.
+کارهای ذخیره‌شده در مرورگر (Local Storage) به سیستم جدید منتقل نمی‌شوند.
 
-۲. ویرایش الگوریتم (بخش‌های Use Case) و کد Mermaid با پیش‌نمایش زنده و بررسی هم‌زمان قوانین؛ رسم فلوچارت از روی الگوریتم.
+### رفع خطا
 
-۳. خروجی با همان ساختار Confluence (کپی برای Paste، Storage Format، Wiki Markup، Markdown، PNG/SVG) یا انتشار مستقیم در همان صفحه (فقط اگر صفحه بعد از ایمپورت تغییر نکرده باشد).
-
-### روش کار به‌طور خلاصه
-
-یک برنامهٔ محلی با دو بخش (snapp seed! و snapp usecase!). رابط کاربری React در مرورگر اجرا می‌شود و پلاگین‌های سرور Vite (پوشهٔ `server/`) نقش Backend را دارند و با Agentها و Confluence ارتباط می‌گیرند؛ برای همین توکن‌ها و کلیدهای API هیچ‌وقت به مرورگر نمی‌رسند.
-
-۱. **ورودی:** نیازمندی‌ها و یادداشت‌ها (Seed Data) یا صفحهٔ Confluence (Use Case).
-
-۲. **جمع‌آوری اطلاعات:** سرور صفحه و زیرصفحه‌های Confluence را می‌خواند و Seed Dataهای موجود را پیدا می‌کند؛ Agent انتخاب‌شده تکراری‌ها را بررسی می‌کند.
-
-۳. **ساخت:** Agent (Claude Code، Codex، Cursor، Gemini، API سازگار با Anthropic یا OpenAI، Ollama یا حالت آفلاین) جدول یا Use Case را طبق اسکیل و استاندارد تیم می‌سازد.
-
-۴. **بررسی و بازبینی:** Checklist و قوانین در مرورگر اجرا می‌شوند؛ ویرایش و پیش‌نمایش می‌کنید.
-
-۵. **انتشار یا خروجی:** بعد از تأیید شما صفحه‌ها در Confluence ساخته یا به‌روز می‌شوند؛ یا برای Confluence و Zephyr کپی/خروجی می‌گیرید.
-
-کارهای در جریان در حافظهٔ مرورگر (Local Storage) و تنظیمات Agentها و کلیدهای رمزنگاری‌شده در پوشهٔ `.data/` روی سرور محلی ذخیره می‌شوند.
-
-### وابستگی‌ها
-
-**سیستمی**
-
-- **Node.js** نسخهٔ ۲۰٫۱۹ یا بالاتر (یا ۲۲٫۱۲ به بعد) همراه npm — الزامی
-- **مرورگر به‌روز** (Chrome، Firefox، Edge) — الزامی
-- **Claude Code** (دستور `claude`) با حساب واردشده — برای Agent پیش‌فرض
-- **Codex CLI**، **Cursor CLI** (`cursor-agent`)، **Gemini CLI** — اختیاری، فقط اگر این Agentها را اضافه کنید
-- **Ollama** — اختیاری، برای مدل محلی
-- **کلید API** سرویس Anthropic یا سازگار با OpenAI — اختیاری، برای Agentهای مبتنی بر API
-- **توکن Confluence** (Personal Access Token یا API Token در Cloud) — برای خواندن صفحات، بررسی تکراری و انتشار
-- **Python** نسخهٔ ۳٫۸ یا بالاتر — اختیاری، فقط برای تنظیم «شبکه» (VPN برای Agentها و اتصال مستقیم Confluence)
-
-**پکیج‌های npm** (با `npm install` نصب می‌شوند؛ جدول کامل نسخه‌ها در بخش انگلیسی Dependencies است)
-
-- `react` و `react-dom`: رابط کاربری
-- `mermaid`: رسم فلوچارت‌ها و خروجی PNG/SVG
-- `@anthropic-ai/sdk`: Agent «Claude (Anthropic API)»
-- `undici`: کلاینت HTTP سرور با مسیریابی Proxy (تنظیم شبکه)
-- `vite` و `@vitejs/plugin-react`: سرور توسعه، Backend و بیلد
-- `typescript` و پکیج‌های `@types/*`: بررسی نوع‌ها
-- `vitest`، `jsdom` و پکیج‌های `@testing-library/*`: تست‌ها
-
-### پیش‌نیازها
-
-۱. نصب **Node.js** نسخهٔ ۲۰٫۱۹ یا بالاتر (یا ۲۲٫۱۲ به بعد). برای بررسی نسخه:
-
-</div>
-<div dir="ltr">
-
-```bash
-node --version
-```
-
-</div>
-<div dir="rtl" align="right">
-
-۲. نصب **Claude Code** و یک بار ورود به حساب (دستور `claude` را در ترمینال اجرا کنید و مراحل ورود را کامل کنید). برای بررسی نصب:
-
-</div>
-<div dir="ltr">
-
-```bash
-claude --version
-```
-
-</div>
-<div dir="rtl" align="right">
-
-### مراحل اجرا
-
-۱. در ترمینال وارد پوشهٔ پروژه شوید (پوشه‌ای که فایل `package.json` در آن است).
-
-۲. نصب وابستگی‌ها (فقط بار اول لازم است):
-
-</div>
-<div dir="ltr">
-
-```bash
-npm install
-```
-
-</div>
-<div dir="rtl" align="right">
-
-۳. اجرای برنامه:
-
-</div>
-<div dir="ltr">
-
-```bash
-npm run dev
-```
-
-</div>
-<div dir="rtl" align="right">
-
-۴. این آدرس را در مرورگر باز کنید:
-
-</div>
-<div dir="ltr">
-
-```text
-http://localhost:5173
-```
-
-</div>
-<div dir="rtl" align="right">
-
-برای متوقف کردن برنامه در ترمینال کلیدهای <kbd>Ctrl</kbd>+<kbd>C</kbd> را بزنید.
-
-### تنظیمات اختیاری
-
-اگر دستور `claude` در PATH نیست، یا می‌خواهید به جای Claude Code از کلید API استفاده کنید، فایل تنظیمات را بسازید:
-
-</div>
-<div dir="ltr">
-
-```bash
-cp .env.example .env.local
-```
-
-</div>
-<div dir="rtl" align="right">
-
-سپس در فایل `.env.local` مقدار `CLAUDE_CODE_PATH` (مسیر کامل فایل `claude`) یا `ANTHROPIC_API_KEY` را وارد کنید و برنامه را دوباره اجرا کنید. مدل و روش تولید جدول را هم می‌توانید از دکمهٔ **Settings** در بالای صفحه عوض کنید.
-
-### تست و بیلد
-
-اجرای تست‌ها:
-
-</div>
-<div dir="ltr">
-
-```bash
-npm test
-```
-
-</div>
-<div dir="rtl" align="right">
-
-بیلد نسخهٔ نهایی:
-
-</div>
-<div dir="ltr">
-
-```bash
-npm run build
-```
-
-</div>
-<div dir="rtl" align="right">
-
-### رفع مشکلات رایج
-
-- **پورت ۵۱۷۳ اشغال است:** برنامهٔ دیگری روی این پورت اجرا شده است. با دستور زیر آن را پیدا و متوقف کنید. پورت عمداً ثابت است تا اطلاعات ذخیره‌شده در مرورگر بعد از هر بار اجرا پیدا شود.
-
-</div>
-<div dir="ltr">
-
-```bash
-lsof -i :5173
-```
-
-</div>
-<div dir="rtl" align="right">
-
-- **پیام «Claude Code was not found»:** Claude Code نصب نیست یا در PATH نیست؛ مقدار `CLAUDE_CODE_PATH` را در `.env.local` تنظیم کنید.
-- **پیام «Not logged in»:** یک بار دستور `claude` را در ترمینال اجرا کنید و وارد حساب شوید.
-- **اطلاعات قبلی دیده نمی‌شود:** اطلاعات در حافظهٔ همان مرورگر ذخیره می‌شود؛ از همان مرورگر و همان آدرس `localhost:5173` استفاده کنید.
+- **`Cannot find module './server/...'` بعد از clone:** همهٔ فایل‌ها commit/push نشده‌اند؛ روی سیستم قبلی `git status` بگیرید، commit و push کنید و دوباره pull کنید.
+- **خطای نسخه یا Syntax در npm/Vite:** نسخهٔ Node قدیمی است.
+- **خطای `rolldown` یا `@rollup/...`:** `node_modules` از سیستم‌عامل دیگری کپی شده؛ `rm -rf node_modules && npm ci`
+- **پورت ۵۱۷۳ اشغال است:** برنامهٔ دیگر را متوقف کنید (`lsof -i :5173`).
+- **`Claude Code was not found` یا `Not logged in`:** Claude Code را نصب کنید یا `CLAUDE_CODE_PATH` را تنظیم کنید و یک بار `claude` را اجرا کنید.
+- **خطای Confluence:** توکن را در تنظیمات Confluence وارد کنید و دسترسی شبکه/VPN را بررسی کنید.
 
 </div>
