@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { agentsApi, type Agent } from '../lib/agentsClient';
 import { copyRich, copyText } from '../lib/clipboard';
+import { DEFAULT_SEED_CONFLUENCE_URL } from '../lib/defaults';
+
 import { generateTable, GenerationError, type AiTransport } from '../lib/generate';
 import { seedPageBody, toSeedDataHtml, toSeedDataText } from '../lib/seedData';
 import { assignFreeIds, previewDocument, seedPages, type Renamed } from '../lib/seedPublish';
@@ -14,6 +16,11 @@ import { TableEditor } from './TableEditor';
 import { useToast } from './Toasts';
 import { ValidationPanel } from './ValidationPanel';
 import { fa } from '../lib/bidi';
+
+/** Provider type of the Codex CLI agent, the default agent in this modal. */
+const CODEX_PROVIDER = 'codex-cli';
+/** Option shown (and selected) as «Codex (پیش‌فرض)» when no Codex agent has been added yet; Settings are not changed. */
+const CODEX_PLACEHOLDER = '__codex__';
 
 export interface ModalApis {
   agents: Pick<typeof agentsApi, 'list' | 'test'>;
@@ -63,7 +70,9 @@ export function GenerateSeedModal({ settings, standard, template, initialRequest
   const [status, setStatus] = useState<ConfluenceStatus | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [agents, setAgents] = useState<Agent[] | null>(null);
-  const [url, setUrl] = useState('');
+  const [url, setUrl] = useState(DEFAULT_SEED_CONFLUENCE_URL);
+  /** The link is locked to the QA Seed Data page until the user chooses to change it. */
+  const [urlEditable, setUrlEditable] = useState(false);
   const [agentId, setAgentId] = useState('');
   const [request, setRequest] = useState(initialRequest);
   const [instructions, setInstructions] = useState('');
@@ -75,8 +84,8 @@ export function GenerateSeedModal({ settings, standard, template, initialRequest
       (d) => {
         const enabled = d.agents.filter((a) => a.enabled);
         setAgents(enabled);
-        const preferred = settings.provider === 'agent' ? settings.agentId : settings.provider !== 'basic' ? settings.provider : undefined;
-        setAgentId(enabled.find((a) => a.id === preferred)?.id ?? enabled.find((a) => a.isDefault)?.id ?? enabled[0]?.id ?? '');
+        // Codex is always the selected default here, whatever Settings say; the placeholder stands in until it is added.
+        setAgentId(enabled.find((a) => a.providerType === CODEX_PROVIDER)?.id ?? CODEX_PLACEHOLDER);
       },
       (err) => setStatusError(errText(err)),
     );
@@ -111,6 +120,7 @@ export function GenerateSeedModal({ settings, standard, template, initialRequest
       if (host && status && host !== new URL(status.baseUrl).host) out.push(`لینک باید از ${new URL(status.baseUrl).host} باشد.`);
     }
     if (agents && !agentId) out.push('یک Agent انتخاب کنید (در تنظیمات، Agent فعالی وجود ندارد).');
+    if (agentId === CODEX_PLACEHOLDER) out.push('Agent «Codex» هنوز اضافه نشده است: در «تنظیمات» Agent Codex را اضافه کنید یا Agent دیگری انتخاب کنید.');
     const chosen = agents?.find((a) => a.id === agentId);
     const key = chosen?.secrets.apiKey;
     if (chosen?.providerType === 'anthropic' && key && !key.set && !key.fromEnv) {
@@ -344,29 +354,48 @@ export function GenerateSeedModal({ settings, standard, template, initialRequest
                     <span>
                       لینک صفحهٔ Confluence <small>همهٔ زیرصفحه‌های آن هم خوانده می‌شوند</small>
                     </span>
-                    <input
-                      className="mono"
-                      dir="ltr"
-                      type="url"
-                      required
-                      aria-label="لینک صفحهٔ Confluence"
-                      placeholder={`${status?.baseUrl ?? 'https://confluence.snappfood.ir'}/spaces/…/pages/…`}
-                      value={url}
-                      onChange={(e) => setUrl(e.target.value)}
-                    />
+                    <div className="url-lock">
+                      <input
+                        className="mono"
+                        dir="ltr"
+                        type="url"
+                        required
+                        aria-label="لینک صفحهٔ Confluence"
+                        placeholder={`${status?.baseUrl ?? 'https://confluence.snappfood.ir'}/spaces/…/pages/…`}
+                        value={url}
+                        disabled={!urlEditable}
+                        onChange={(e) => setUrl(e.target.value)}
+                      />
+                      {urlEditable ? (
+                        <button
+                          type="button"
+                          className="btn"
+                          onClick={() => (setUrl(DEFAULT_SEED_CONFLUENCE_URL), setUrlEditable(false))}
+                          title="برگرداندن لینک به صفحهٔ QA Seed Data و قفل کردن آن"
+                        >
+                          لینک پیش‌فرض
+                        </button>
+                      ) : (
+                        <button type="button" className="btn" onClick={() => setUrlEditable(true)} title="باز کردن قفل لینک برای وارد کردن صفحهٔ دیگر">
+                          تغییر لینک
+                        </button>
+                      )}
+                    </div>
                   </label>
                   <label className="field">
                     <span>
                       Agent <small>بررسی تکراری‌ها و ساخت با همین Agent انجام می‌شود</small>
                     </span>
                     <select aria-label="Agent" value={agentId} onChange={(e) => setAgentId(e.target.value)}>
-                      {agents?.length === 0 && <option value="">هیچ Agent فعالی نیست — در تنظیمات اضافه کنید</option>}
-                      {agents?.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.name}
-                          {a.isDefault ? ' (پیش‌فرض)' : ''}
-                        </option>
-                      ))}
+                      {agents && !agents.some((a) => a.providerType === CODEX_PROVIDER) && <option value={CODEX_PLACEHOLDER}>Codex (پیش‌فرض)</option>}
+                      {[...(agents ?? [])]
+                        .sort((a, b) => Number(b.providerType === CODEX_PROVIDER) - Number(a.providerType === CODEX_PROVIDER))
+                        .map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.name}
+                            {a.providerType === CODEX_PROVIDER ? ' (پیش‌فرض)' : ''}
+                          </option>
+                        ))}
                     </select>
                   </label>
                 </section>

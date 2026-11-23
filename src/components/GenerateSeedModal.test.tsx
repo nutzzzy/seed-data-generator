@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { Agent } from '../lib/agentsClient';
-import { defaultSettings, seedDataStandard, seedDataTemplate } from '../lib/defaults';
+import { DEFAULT_SEED_CONFLUENCE_URL, defaultSettings, seedDataStandard, seedDataTemplate } from '../lib/defaults';
 import type { AiTransport } from '../lib/generate';
 import { ApiError, type ConfluenceStatus, type JobView, type PublishResult } from '../lib/seedJobsClient';
 import type { GeneratedTable } from '../lib/types';
@@ -124,18 +124,66 @@ function setup(options: { tokenSet?: boolean; jobs: JobView[]; publish?: (id: st
   return { user, apis, transport, onGenerated, onClose };
 }
 
+/** The link field is locked to the team's QA Seed Data page; unlock it and replace it with another link. */
+async function fillUrl(user: ReturnType<typeof userEvent.setup>, url: string) {
+  const box = await screen.findByRole('textbox', { name: 'لینک صفحهٔ Confluence' });
+  await user.click(screen.getByRole('button', { name: 'تغییر لینک' }));
+  await user.clear(box);
+  await user.type(box, url);
+}
+
+/** Codex is the pre-selected agent (a placeholder when none is added); these tests run with Claude Code instead. */
+async function pickClaudeCode(user: ReturnType<typeof userEvent.setup>) {
+  const agent = screen.getByRole('combobox', { name: 'Agent' });
+  await waitFor(() => expect(agent).toHaveValue('__codex__'));
+  await user.selectOptions(agent, 'claude-code');
+}
+
 async function startWith(user: ReturnType<typeof userEvent.setup>, url = URL_OK) {
-  await user.type(await screen.findByRole('textbox', { name: 'لینک صفحهٔ Confluence' }), url);
-  await waitFor(() => expect(screen.getByRole('combobox', { name: 'Agent' })).toHaveValue('claude-code'));
+  await fillUrl(user, url);
+  await pickClaudeCode(user);
   await user.click(screen.getByRole('button', { name: 'شروع' }));
 }
 
 describe('Seed Data generation modal', () => {
+  it('locks the link to the QA Seed Data page until «تغییر لینک» is pressed, and can go back to it', async () => {
+    const { user } = setup({ jobs: [baseJob] });
+    const box = await screen.findByRole('textbox', { name: 'لینک صفحهٔ Confluence' });
+    expect(box).toHaveValue(DEFAULT_SEED_CONFLUENCE_URL);
+    expect(box).toBeDisabled();
+    await fillUrl(user, URL_OK);
+    expect(box).toBeEnabled();
+    expect(box).toHaveValue(URL_OK);
+    await user.click(screen.getByRole('button', { name: 'لینک پیش‌فرض' }));
+    expect(box).toHaveValue(DEFAULT_SEED_CONFLUENCE_URL);
+    expect(box).toBeDisabled();
+  });
+
+  it('shows Codex as the selected default agent, even before a Codex agent is added', async () => {
+    const { user } = setup({ jobs: [baseJob] });
+    await fillUrl(user, URL_OK);
+    const agent = screen.getByRole('combobox', { name: 'Agent' });
+    await waitFor(() => expect(agent).toHaveDisplayValue('Codex (پیش‌فرض)'));
+    expect(screen.getByRole('option', { name: 'Claude Code' })).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'موارد لازم برای شروع' })).toHaveTextContent('Agent «Codex» هنوز اضافه نشده است');
+    expect(screen.getByRole('button', { name: 'شروع' })).toBeDisabled();
+  });
+
+  it('selects an added Codex agent as the default, over the agent in Settings', async () => {
+    const codex: Agent = { ...AGENT, id: 'codex', name: 'Codex', providerType: 'codex-cli', isDefault: false };
+    setup({ jobs: [baseJob], extraAgents: [codex] });
+    const agent = screen.getByRole('combobox', { name: 'Agent' });
+    await waitFor(() => expect(agent).toHaveValue('codex'));
+    expect(agent).toHaveDisplayValue('Codex (پیش‌فرض)');
+    expect(screen.queryByRole('option', { name: 'Claude Code (پیش‌فرض)' })).not.toBeInTheDocument();
+  });
+
   it('asks for the Confluence token inside the modal when none is configured', async () => {
     const { user, apis } = setup({ tokenSet: false, jobs: [baseJob] });
     expect(await screen.findByText(/اول اتصال را تنظیم کنید/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'شروع' })).toBeDisabled();
-    await user.type(screen.getByRole('textbox', { name: 'لینک صفحهٔ Confluence' }), URL_OK);
+    await fillUrl(user, URL_OK);
+    await pickClaudeCode(user);
     await user.type(screen.getByLabelText('توکن Confluence'), 'pat-0123456789abcd');
     await user.click(screen.getByRole('button', { name: 'ذخیرهٔ تنظیمات Confluence' }));
     await waitFor(() => expect(screen.getByRole('button', { name: 'شروع' })).toBeEnabled());
@@ -146,7 +194,7 @@ describe('Seed Data generation modal', () => {
 
   it('only accepts links on the configured Confluence, and says so next to the Start button', async () => {
     const { user, apis } = setup({ jobs: [baseJob] });
-    await user.type(await screen.findByRole('textbox', { name: 'لینک صفحهٔ Confluence' }), 'https://example.com/pages/1');
+    await fillUrl(user, 'https://example.com/pages/1');
     expect(screen.getByRole('status', { name: 'موارد لازم برای شروع' })).toHaveTextContent('لینک باید از confluence.snappfood.ir باشد');
     expect(screen.getByRole('button', { name: 'شروع' })).toBeDisabled();
     expect(apis.jobs.start).not.toHaveBeenCalled();
@@ -154,7 +202,8 @@ describe('Seed Data generation modal', () => {
 
   it('explains why Start is disabled when the Confluence connection was only tested, not saved', async () => {
     const { user, apis } = setup({ tokenSet: false, jobs: [baseJob] });
-    await user.type(await screen.findByRole('textbox', { name: 'لینک صفحهٔ Confluence' }), URL_OK);
+    await fillUrl(user, URL_OK);
+    await pickClaudeCode(user);
     await user.type(screen.getByLabelText('توکن Confluence'), 'pat-0123456789abcd');
     await user.click(screen.getByRole('button', { name: 'بررسی اتصال' }));
     expect(await screen.findByText(/هنوز ذخیره نشده است/)).toBeInTheDocument();
@@ -172,8 +221,8 @@ describe('Seed Data generation modal', () => {
   it('flags an Anthropic agent without a key as soon as it is selected', async () => {
     const noKey: Agent = { ...AGENT, id: 'anthropic', name: 'Claude (Anthropic API)', providerType: 'anthropic', isDefault: false, secrets: { apiKey: { set: false, masked: null, fromEnv: false } } };
     const { user, apis } = setup({ jobs: [baseJob], extraAgents: [noKey] });
-    await user.type(await screen.findByRole('textbox', { name: 'لینک صفحهٔ Confluence' }), URL_OK);
-    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Agent' })).toHaveValue('claude-code'));
+    await fillUrl(user, URL_OK);
+    await pickClaudeCode(user);
     expect(screen.getByRole('button', { name: 'شروع' })).toBeEnabled();
     await user.selectOptions(screen.getByRole('combobox', { name: 'Agent' }), 'anthropic');
     expect(screen.getByRole('status', { name: 'موارد لازم برای شروع' })).toHaveTextContent('کلید API ندارد');
@@ -184,8 +233,8 @@ describe('Seed Data generation modal', () => {
   it('tests the agent before reading Confluence and stops with its message when it is not ready', async () => {
     const broken: Agent = { ...AGENT, id: 'broken', name: 'Cursor', providerType: 'cursor-cli', isDefault: false };
     const { user, apis } = setup({ jobs: [baseJob], extraAgents: [broken] });
-    await user.type(await screen.findByRole('textbox', { name: 'لینک صفحهٔ Confluence' }), URL_OK);
-    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Agent' })).toHaveValue('claude-code'));
+    await fillUrl(user, URL_OK);
+    await pickClaudeCode(user);
     await user.selectOptions(screen.getByRole('combobox', { name: 'Agent' }), 'broken');
     await user.click(screen.getByRole('button', { name: 'شروع' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Agent «Cursor» آماده نیست: Cursor وارد حساب نشده است.');

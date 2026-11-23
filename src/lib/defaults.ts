@@ -8,6 +8,9 @@ export const EPOCH = '2026-01-01T00:00:00.000Z';
  */
 export const GUIDE_VERSION = 3;
 
+/** Pre-filled (editable) Confluence page that Seed Data generation reads from: the team's "QA Seed Data" page. */
+export const DEFAULT_SEED_CONFLUENCE_URL = 'https://confluence.snappfood.ir/spaces/QC/pages/247858019/QA+Seed+Data';
+
 export const defaultSettings: Settings = {
   provider: 'claude-code',
   claudeCodeModel: '',

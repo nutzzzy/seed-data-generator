@@ -2093,3 +2093,20 @@ h4.row-between select {
 .bad-text {
   color: var(--danger);
 }
+
+/* Confluence link in the Seed Data modal: locked until "تغییر لینک" is pressed. */
+.url-lock {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.url-lock input {
+  flex: 1;
+  min-width: 0;
+}
+.url-lock input:disabled {
+  background: var(--surface-2);
+  color: var(--muted);
+  cursor: not-allowed;
+  pointer-events: none;
+}
