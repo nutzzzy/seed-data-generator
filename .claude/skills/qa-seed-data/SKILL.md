@@ -173,6 +173,32 @@ A test that changes the data's state (e.g. accepts the pending order) needs that
 | Full Seed Data description | ❌ | ✅ |
 | Test cases using it | Reference | ✅ (Used By) |
 
+## Unicode-encoded text
+
+Requests, notes, Confluence pages, API responses or exported data may contain text as Unicode escapes instead of readable characters (common for Persian names, addresses and menu items). Decode it before using it, and deliver only the readable text.
+
+Recognise and decode:
+
+| Form | Example | Decoded |
+|---|---|---|
+| `\uXXXX` (JSON / JS / Java) | `\u0631\u0633\u062a\u0648\u0631\u0627\u0646` | رستوران |
+| `\u{XXXXX}` (JS, outside the BMP) | `\u{1F355}` | 🍕 |
+| `\UXXXXXXXX` / `\xXX` (Python) | `\U0001F355` | 🍕 |
+| Surrogate pairs | `\ud83c\udf55` | 🍕 (one character, not two) |
+| HTML / XML entities | `&#1585;&#1587;&#1578;` or `&#x631;&#x633;&#x62a;` | رست |
+| `U+XXXX` notation | `U+0628` | ب |
+| Percent-encoded UTF-8 (URLs) | `%D8%B1%D8%B3%D8%AA` · `QA+Seed+Data` (query) | رست · QA Seed Data |
+| Double-escaped | `\\u0628` (e.g. JSON inside JSON) | ب (decode until stable) |
+| Mojibake (UTF-8 read as Windows-1252 / Latin-1) | `Ø±Ø³ØªÙˆØ±Ø§Ù†` | رستوران |
+
+How to apply:
+- Decode in every place the value is written: Data table, Metadata, Purpose, Preconditions, How to Create / Verify, etc. A Seed Data page never shows raw escapes.
+- Keep the meaning and characters exactly: do not translate, transliterate, "fix" spelling or swap Arabic ي / ك for Persian ی / ک. Keep the zero-width non-joiner (ZWNJ, `\u200c`) as a real half-space.
+- Leave alone what is not encoded text: IDs, Seed Data IDs, codes, hashes, tokens, regular expressions, and escapes inside code samples or API contracts where the escaped form is the point (then write it in a code block).
+- If a value only partly decodes or the result is not valid text (broken surrogates, invalid UTF-8, mixed encodings), keep the original in a code block and add an issue for it; don't guess.
+- Decoding never makes data publishable: run the result through *Sensitive information* like any other text.
+- When you decoded something, say so briefly in the issues/notes (e.g. «نام وندور از Unicode escape دیکد شد»), so the reviewer knows the source was encoded.
+
 ## Rules
 
 1. **Search first** – the Seed Data may already exist (the automatic list on the guide page, and the Domain pages).
@@ -183,7 +209,8 @@ A test that changes the data's state (e.g. accepts the pending order) needs that
 6. **Make it understandable** – a QA who did not create the data can use it without asking.
 7. **How to Create contains no test steps.**
 8. **No Seed Data on production.**
-9. **Don't invent facts** – use only information from the request and the documentation. Write `Not specified` for anything missing (e.g. Owner, Last Verified, Used By when no Zephyr keys are given) and say what is missing. Use `Dynamic` only when the value changes per run.
+9. **Decode Unicode** – escapes such as `\u0631`, `&#1585;` or `%D8%B1` are decoded to readable text before use (see *Unicode-encoded text*).
+10. **Don't invent facts** – use only information from the request and the documentation. Write `Not specified` for anything missing (e.g. Owner, Last Verified, Used By when no Zephyr keys are given) and say what is missing. Use `Dynamic` only when the value changes per run.
 
 ## Checklist before publishing a Seed Data page
 
@@ -199,6 +226,7 @@ A test that changes the data's state (e.g. accepts the pending order) needs that
 - [ ] Dependencies is filled
 - [ ] Used By has the Zephyr keys of the test cases
 - [ ] No sensitive information
+- [ ] No raw Unicode escapes, entities or mojibake left in the text
 - [ ] The page is under the right Domain page and has the required labels
 
 ## Core principle
